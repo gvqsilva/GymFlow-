@@ -59,7 +59,14 @@ interface GroupedMealData {
 // --- FIM DAS INTERFACES ---
 
 const allFoods: FoodItem[] = Object.values(FoodDatabase).flat();
-const getLocalDateString = (date = new Date()) => date.toISOString().split('T')[0];
+// Usa componentes de data local para evitar problemas com UTC/toISOString
+const getLocalDateString = (date: Date | string = new Date()) => {
+  const d = new Date(date);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
 
 const ResultMacroText = ({ label, value, unit, emoji }: { label: string; value: number | undefined | null; unit: string; emoji: string; }) => (
   <View style={styles.macroRow}>

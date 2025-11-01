@@ -24,7 +24,14 @@ LocaleConfig.locales['pt-br'] = {
 LocaleConfig.defaultLocale = 'pt-br';
 
 // --- FUNÇÕES AUXILIARES ---
-const getLocalDateString = (date = new Date()) => date.toISOString().split('T')[0];
+// Retorna YYYY-MM-DD usando data local (não UTC)
+const getLocalDateString = (date: Date | string = new Date()) => {
+    const d = new Date(date);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+};
 
 const processDailyFoodData = (entries: any[], today: string): { totalCalories: number } => {
     if (!Array.isArray(entries)) return { totalCalories: 0 };

@@ -10,7 +10,14 @@ import { calculateTDEE, BMRInput } from '../utils/calorieCalculator';
 const themeColor = '#5a4fcf';
 
 // --- Funções Auxiliares ---
-const getLocalDateString = (date = new Date()) => date.toISOString().split('T')[0];
+// Retorna a data no formato YYYY-MM-DD usando componentes de data local (evita usar toISOString que converte para UTC)
+const getLocalDateString = (date: Date | string = new Date()) => {
+    const d = new Date(date);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+};
 
 const calculateAge = (birthDate: string | Date): number => {
     if (!birthDate) return 0;
@@ -108,10 +115,42 @@ export default function ProfileScreen() {
         }, [])
     );
 
-    if (isLoading || !profile) {
+    if (isLoading) {
         return (
             <SafeAreaView style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={themeColor} />
+            </SafeAreaView>
+        );
+    }
+
+    // Se não há perfil salvo, permite ao usuário criar um — evita spinner infinito
+    if (!profile) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <Stack.Screen
+                    options={{
+                        title: 'Perfil',
+                        headerRight: () => (
+                            <Pressable onPress={() => router.push('/perfil-modal')}>
+                                <Ionicons name="pencil" size={24} color="white" style={{ marginRight: 15 }} />
+                            </Pressable>
+                        ),
+                    }}
+                />
+
+                <View style={styles.header}>
+                    <Text style={styles.greeting}>Olá!</Text>
+                    <Text style={styles.subHeader}>Nenhum perfil encontrado. Por favor, crie o seu perfil.</Text>
+                </View>
+
+                <View style={{ paddingHorizontal: 20 }}>
+                    <Pressable
+                        onPress={() => router.push('/perfil-modal')}
+                        style={{ backgroundColor: themeColor, padding: 15, borderRadius: 10, alignItems: 'center' }}
+                    >
+                        <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold' }}>Criar Perfil</Text>
+                    </Pressable>
+                </View>
             </SafeAreaView>
         );
     }
