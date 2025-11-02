@@ -1,116 +1,165 @@
-# 📱 App GymFlow
+# 📱 GymFlow — Diário de Treino, Nutrição e Suplementação
 
-**Data da Versão:** 12 de outubro de 2025  
-**Status:** Funcionalidade Local Completa (V.2.0)
+**Última Actualização:** 02 de Novembro de 2025
+**Estado:** Funcionalidade local completa — pronto para testes no Expo (iOS/Android/Web)
 
 ---
 
 ## 📑 Sumário
 
-- [🎯 Visão Geral](#visão-geral)
-- [🏗️ Arquitetura e Tecnologias](#arquitetura-e-tecnologias)
-- [⚙️ Funcionalidades Implementadas](#funcionalidades-implementadas)
-  - [🏠 Home (Tela Principal)](#home-tela-principal)
-  - [🏋️ Esportes (Hub de Atividades)](#esportes-hub-de-atividades)
-  - [🍎 Alimentação (Diário Nutricional)](#alimentação-diário-nutricional)
-  - [⚙️ Configurações (Hub de Gestão)](#configurações-hub-de-gestão)
-- [🚧 Roadmap (Próximos Passos)](#roadmap-próximos-passos)
+- [Visão geral](#visão-geral)
+- [Funcionalidades principais](#funcionalidades-principais)
+- [Instalação e execução](#instalação-e-execução)
+- [Estrutura do projeto](#estrutura-do-projeto)
+- [Armazenamento de dados e chaves importantes](#armazenamento-de-dados-e-chaves-importantes)
+- [Resolução de problemas comuns](#resolução-de-problemas-comuns)
+- [Desenvolvimento e contribuições](#desenvolvimento-e-contribuições)
+- [Roadmap & melhorias futuras](#roadmap--melhorias-futuras)
 
 ---
 
-## 🎯 Visão Geral
+## Visão geral
 
-Aplicação móvel pessoal (iOS/Android) que atua como **"Diário de Atleta Completo"**, permitindo monitorizar toda a rotina de treinos, suplementação e nutrição.
+GymFlow é uma aplicação móvel (Expo/React Native + TypeScript) desenhada para acompanhar treinos, nutrição e suplementação do utilizador.
 
-**Objetivos Principais:**
-
-- Centralizar registos de treinos (diversas modalidades)
-- Acompanhar suplementação e nutrição de forma dinâmica e inteligente
-- Fornecer métricas de progresso acionáveis
-- Funcionar 100% offline, sem dependência de APIs externas para funcionalidades críticas
-
-**Evolução:** Diário de musculação → Hub de performance completo
+Principais objetivos:
+- Gerir fichas de musculação e outras modalidades
+- Registar alimentos e acompanhar o balanço energético diário
+- Agendar e gerir suplementos e lembretes
+- Fornecer métricas simples (IMC, TDEE estimado, calorias gastas)
 
 ---
 
-## 🏗️ Arquitetura e Tecnologias
+## Funcionalidades principais
 
-| Categoria | Componentes Chave | Notas |
-| --- | --- | --- |
-| Framework | React Native (Expo) / TypeScript | Base do projeto |
-| Navegação | Expo Router (file-based) | Estrutura de abas e navegação em stack |
-| Armazenamento | AsyncStorage | Fonte única de verdade para todos os dados do utilizador |
-| Base de Dados | JSON Local (`data/foodData.json`) | Base interna com mais de 300 alimentos, estruturada por categorias |
-| Lógica de Cálculo | `utils/calorieCalculator.ts` | Contém a fórmula de TDEE (Harris-Benedict) |
-| Controle de Estado | Custom Hooks (`useWorkouts`, etc.) | Gerenciamento de dados centralizado |
-| Componentes Nativos | `expo-notifications`, `react-native-calendars`, `react-native-chart-kit` | Utilizados para lembretes, calendário e gráficos |
-
----
-
-## ⚙️ Funcionalidades Implementadas
-
-### 🏠 Home (Tela Principal)
-
-- **Dashboard Diário:** Resumo dos compromissos do dia
-- **Acompanhamento de Suplementos Dinâmico:** Cards interativos para todos os suplementos configurados
-- **Gasto Calórico Diário:** Exibe o total de calorias gastas nas atividades do dia
-- **Atalho de Musculação Dinâmico:** Sugere automaticamente o próximo treino da sequência
-- **Resumo Semanal de Atividades:** Gráfico de barras com ícones dos desportos, mostrando a frequência
+- Dashboard diário com resumo de calorias consumidas e gastas
+- Registro de treinos por desporto (inclui fluxos dedicados para Musculação e Natação)
+- Fichas de treino (Musculação) com contabilização automática do treino do dia
+- Cálculo de gasto calórico por atividade usando METs (arquivo: `constants/metData.ts`)
+- Diário alimentar com busca inteligente e agrupamento por refeição
+- Perfil do utilizador com cálculo de IMC, idade e TDEE estimado (`perfil.tsx`, `perfil-modal.tsx`)
+- Calendário com marcações por balanço energético (verde/vermelho)
+- Gestão completa (CRUD) para: suplementos, fichas, desportos
+- Operação offline: todos os dados guardados localmente em AsyncStorage
 
 ---
 
-### 🏋️ Esportes (Hub de Atividades)
+## Instalação e execução
 
-- **Hub Central:** Ponto de partida para registar qualquer atividade física
-- **Lista de Desportos Dinâmica:** O utilizador pode adicionar, editar e apagar os seus próprios desportos
-- **Gráfico de Evolução de Carga:** Dentro da tela de detalhe de cada exercício de musculação, um gráfico de linhas exibe a progressão de peso (PR)
+Pré-requisitos:
+- Node.js (v18+ recomendado)
+- npm ou yarn
+- Expo CLI (opcional, mas recomendado): `npm install -g expo-cli`
 
-**Fluxos Diferenciados:**
+Passos:
 
-- **Academia:** Redireciona para as fichas de treino detalhadas (A, B, C, etc.)
-- **Outros Desportos:** Abre um ecrã de registo rápido com campos especializados (ex: "Metros Nadados" para Natação)
+1. Instalar dependências
 
----
+```bash
+npm install
+```
 
-### 🍎 Alimentação (Diário Nutricional)
+2. Iniciar a aplicação (modo desenvolvimento)
 
-- **Busca Inteligente com Autocomplete:** Lista de sugestões de alimentos que aparece enquanto o utilizador digita
-- **Input Robusto e Flexível:** Interpreta quantidades em g, ml, "colher de sopa" e "unidade"
-- **Balanço Diário Visível:** Mostra o Total Consumido e o Total Gasto em calorias no topo do ecrã
-- **Categorização e Detalhes:** Permite registar alimentos por refeição e visualizar um histórico diário agrupado por categoria
+```bash
+npm run start
+# ou
+expo start
+```
 
----
+3. Executar no dispositivo / emulador
 
-### ⚙️ Configurações (Hub de Gestão)
+- Android: selecione `Run on Android device/emulator` no Metro ou `npm run android`
+- iOS: selecione `Run on iOS simulator` ou `npm run ios` (macOS necessário)
+- Web: `npm run web`
 
-- **Hub Central de Gestão:** Centraliza o acesso a todas as áreas de personalização da aplicação
+Lint e checagens rápidas:
 
-**Perfil do Utilizador (`perfil.tsx` e `perfil-modal.tsx`):**
-
-- Visualização Clara: Dados como nome, idade, altura, peso e IMC
-- Edição Avançada: Definição de Peso Meta e Prazo, calculando automaticamente a meta de calorias diárias
-
-**Gestão de Suplementos (`gerir-suplementos.tsx`):**
-
-- CRUD Completo: Criar, editar e apagar suplementos
-- Lembretes Dinâmicos: Cada suplemento possui um botão Switch para ativar/desativar lembrete diário com horário personalizado
-
-**Gestão de Fichas de Treino (`gerir-fichas.tsx`):**
-
-- CRUD Completo: Criar, editar e apagar fichas de treino e exercícios
-
-**Gestão de Esportes (`gerir-esportes.tsx`):**
-
-- CRUD Completo: Criar, editar e apagar desportos personalizados, incluindo seleção de ícones
-
-**Histórico e Dados (`gestao-dados.tsx`):**
-
-- Calendário Inteligente: Exibe um ponto em cada dia com registos, colorido para indicar balanço calórico (Verde = déficit, Vermelho = superávit)
-- Resumo Detalhado no Modal: Ao clicar num dia, modal exibe balanço completo, suplementos e atividades da data
-- Modo de Edição: Permite excluir registos de atividades ou adicionar novas atividades a dias passados
+```bash
+npm run lint
+```
 
 ---
 
-## 🚧 Roadmap (Próximos Passos)
+## Estrutura do projeto (resumo)
 
-- ☁️ Longo Prazo: Integrar Firebase para autenticação e sincronização na nuvem
+- `app/` — telas e rotas (Expo Router)
+  - `perfil.tsx`, `perfil-modal.tsx` — perfil do utilizador
+  - `fichas/` — telas de musculação e exercícios
+  - `(tabs)/` — telas de navegação principal (Home, Esportes, Historico, etc.)
+- `components/` — componentes reaproveitáveis (cards, modais, etc.)
+- `constants/` — constantes da app (`metData.ts`, `colors.ts`, etc.)
+- `data/` — base local de alimentos (`foodData.json`)
+- `hooks/` — hooks customizados (`useWorkouts`, `useSports`, etc.)
+- `utils/` — utilitários como `calorieCalculator.ts`
+
+---
+
+## Armazenamento de dados e chaves importantes
+
+A aplicação guarda todos os dados no AsyncStorage. Principais chaves:
+
+- `userProfile` — objeto com informações do utilizador (name, weight, height, birthDate, gender, activityLevel, targetWeight, goalDate)
+- `foodHistory` — array de entradas alimentares. Cada item geralmente tem a forma:
+  - `{ id, date: 'YYYY-MM-DD', mealType, description, data: { calories, protein, carbs, fat } }`
+- `workoutHistory` — array de registos de treino. Estrutura típica:
+  - `{ id, date: 'YYYY-MM-DD', category: 'Musculação'|'Natação'|..., details: { duration, calories, performance?, notes? } }`
+- `supplements_history` — histórico/agenda de suplementos por data
+
+OBS: Todas as datas são gravadas/consultadas no formato `YYYY-MM-DD` usando data local (não UTC) para evitar problemas de fuso horário.
+
+---
+
+## Resolução de problemas comuns
+
+- Calorias de musculação aparecem como 0:
+  - Verifique se existe `MET_DATA['Musculação']` (foi adicionada por padrão) e se o `userProfile.weight` está salvo (o cálculo usa o peso do perfil). Se o peso for 0 ou indefinido, o resultado será 0.
+
+- Entradas aparecem no dia seguinte (problema de fuso horário):
+  - O app grava datas no formato `YYYY-MM-DD` usando componentes de data locais. Contudo, se um dispositivo alterar o timezone ou se houver gravação usando `toISOString()` em algum fluxo, pode empurrar a data para o dia seguinte em fusos como Brasilia. Caso encontre esse comportamento, verifique os arquivos que usam `toISOString()` (ex.: `perfil-modal.tsx` salva `birthDate` e `goalDate` usando `toISOString()` — isso é intencional para campos que precisam do timestamp; para registros por dia usamos a função `getLocalDateString`).
+
+- Spinner infinito na tela de Perfil:
+  - Se não houver `userProfile` salvo, a tela de perfil agora mostra um botão "Criar Perfil" em vez de ficar em loading.
+
+---
+
+## Desenvolvimento e contribuições
+
+- Recomenda-se criar uma branch por feature: `git checkout -b feat/nome-da-feature`
+- Mantenha as alterações pequenas e escreva mensagens de commit descritivas
+- Para contribuir:
+  1. Fork o projeto
+  2. Crie uma branch
+  3. Abra um Pull Request descrevendo a mudança e os passos para testar
+
+Testes locais e verificação rápida:
+
+```bash
+# Instalar dependências
+npm install
+
+# Lint
+npm run lint
+
+# Rodar app
+npm run start
+```
+
+---
+
+## Roadmap & melhorias futuras
+
+- Sincronização na nuvem (Firebase / Sync service)
+- Autenticação multi-usuário
+- Export / Import de dados (JSON / CSV)
+- Melhoria de UX no registo de refeições (interpretação de porções mais avançada)
+- Centralizar utilitários de data em `utils/date.ts` para garantir consistência
+
+---
+
+Se quiser, eu posso:
+- Rodar o linter/TypeScript localmente e reportar erros
+- Centralizar a função `getLocalDateString` em `utils/date.ts` e atualizar os usos
+- Adicionar uma pequena seção de exemplos de payload (JSON) no README
+
+Obrigado — diga o que quer que eu faça a seguir.
