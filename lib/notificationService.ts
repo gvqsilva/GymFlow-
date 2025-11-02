@@ -1,12 +1,26 @@
 // lib/notificationService.ts
 
-import { Alert, Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
+import { Alert, Platform } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 const REMINDERS_KEY = 'all_supplement_reminders';
 const SUPPLEMENTS_HISTORY_KEY = 'supplements_history';
+const SCHEDULED_IDS_KEY = 'scheduled_notification_ids';
 
+// Configuração global para exibir alerta e tocar som
+Notifications.setNotificationHandler({
+  handleNotification: async (): Promise<Notifications.NotificationBehavior> => {
+    return {
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    } as Notifications.NotificationBehavior;
+  },
+});
+
+// Função utilitária para converter data local
 const getLocalDateString = (date = new Date()) => {
   const year = date.getFullYear();
   const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -14,6 +28,7 @@ const getLocalDateString = (date = new Date()) => {
   return `${year}-${month}-${day}`;
 };
 
+// Solicita permissão para notificações
 async function registerForPushNotificationsAsync() {
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
@@ -24,7 +39,7 @@ async function registerForPushNotificationsAsync() {
   }
 
   if (finalStatus !== 'granted') {
-    Alert.alert('Permissão Negada', 'Ative as notificações nas configurações do dispositivo.');
+    Alert.alert('Permissão negada', 'Ative as notificações nas configurações do dispositivo.');
     return false;
   }
 
@@ -40,24 +55,55 @@ async function registerForPushNotificationsAsync() {
   return true;
 }
 
+// Cancela notificações de um suplemento
+export async function cancelScheduledReminder(supplementId: string) {
+  try {
+    const scheduledMapJSON = await AsyncStorage.getItem(SCHEDULED_IDS_KEY);
+    const scheduledMap: Record<string, string[]> = scheduledMapJSON ? JSON.parse(scheduledMapJSON) : {};
+
+    const ids: string[] = scheduledMap[supplementId] || [];
+    for (const id of ids) {
+      await Notifications.cancelScheduledNotificationAsync(id);
+    }
+
+    scheduledMap[supplementId] = [];
+    await AsyncStorage.setItem(SCHEDULED_IDS_KEY, JSON.stringify(scheduledMap));
+
+    console.log(`🗑️ Notificações canceladas para ${supplementId}`);
+  } catch (e) {
+    console.error('Erro ao cancelar notificações:', e);
+  }
+}
+
+// Agenda todas as notificações
 export async function scheduleAllReminders() {
   console.log('🔄 Reagendando lembretes...');
-
   const hasPermission = await registerForPushNotificationsAsync();
   if (!hasPermission) return;
 
   const remindersJSON = await AsyncStorage.getItem(REMINDERS_KEY);
-  const reminders = remindersJSON ? JSON.parse(remindersJSON) : {};
+  const reminders: Record<string, any> = remindersJSON ? JSON.parse(remindersJSON) : {};
 
   const supplementsHistoryJSON = await AsyncStorage.getItem(SUPPLEMENTS_HISTORY_KEY);
-  const supplementsHistory = supplementsHistoryJSON ? JSON.parse(supplementsHistoryJSON) : {};
+  const supplementsHistory: Record<string, any> = supplementsHistoryJSON ? JSON.parse(supplementsHistoryJSON) : {};
 
   const todayStr = getLocalDateString();
   const todayHistory = supplementsHistory[todayStr] || {};
 
+  let scheduledMap: Record<string, string[]> = {};
+  try {
+    const scheduledMapJSON = await AsyncStorage.getItem(SCHEDULED_IDS_KEY);
+    scheduledMap = scheduledMapJSON ? JSON.parse(scheduledMapJSON) : {};
+  } catch (e) {
+    console.warn('Não foi possível ler scheduledMap:', e);
+  }
+
   for (const supplementId in reminders) {
     const reminder = reminders[supplementId];
     const alreadyTaken = todayHistory[supplementId];
+
+    // Cancela agendamentos antigos
+    await cancelScheduledReminder(supplementId);
 
     if (reminder.enabled && !alreadyTaken) {
       const reminderTime = new Date(reminder.time);
@@ -67,45 +113,46 @@ export async function scheduleAllReminders() {
       nextTriggerDate.setHours(reminderTime.getHours(), reminderTime.getMinutes(), 0, 0);
       if (nextTriggerDate <= now) nextTriggerDate.setDate(nextTriggerDate.getDate() + 1);
 
-      const delay = nextTriggerDate.getTime() - now.getTime();
-
-      // ⏰ Notificação principal
-      setTimeout(async () => {
-        await Notifications.scheduleNotificationAsync({
+      try {
+        const notificationId = await Notifications.scheduleNotificationAsync({
           content: {
             title: `Lembrete: ${reminder.supplementName} 💊`,
-            body: 'Não se esqueça de registar a sua dose de hoje.',
+            body: 'Não se esqueça de registrar sua dose de hoje.',
             sound: true,
           },
-          trigger: null, // ✅ dispara imediatamente
+          trigger: nextTriggerDate as any,
         });
-      }, delay);
 
-      console.log(`✅ Lembrete principal de "${reminder.supplementName}" em ${Math.round(delay / 1000 / 60)} minutos`);
+        scheduledMap[supplementId] = [notificationId];
+        await AsyncStorage.setItem(SCHEDULED_IDS_KEY, JSON.stringify(scheduledMap));
 
-      // 🔁 Reforços de hora em hora
-      const numberOfReinforcements = 5;
-      for (let i = 1; i <= numberOfReinforcements; i++) {
-        const reinforcementDate = new Date(nextTriggerDate.getTime() + i * 3600 * 1000);
-        const reinforcementDelay = reinforcementDate.getTime() - now.getTime();
+        try {
+          Toast.show({
+            type: 'success',
+            text1: `Lembrete agendado: ${reminder.supplementName}`,
+            text2: `Hora: ${nextTriggerDate.toLocaleString()}`,
+            visibilityTime: 4000,
+          });
+        } catch {}
 
-        if (reinforcementDelay > 0) {
-          setTimeout(async () => {
-            await Notifications.scheduleNotificationAsync({
-              content: {
-                title: `Ainda não tomou seu ${reminder.supplementName}?`,
-                body: `Este é um lembrete de reforço. Toque para registar.`,
-                sound: true,
-              },
-              trigger: null, // ✅ dispara imediatamente
-            });
-          }, reinforcementDelay);
-
-          console.log(`⏰ Reforço #${i} será exibido em ${Math.round(reinforcementDelay / 1000 / 60)} minutos`);
-        }
+        console.log(`✅ Notificação agendada para ${reminder.supplementName} em ${nextTriggerDate.toLocaleString()}`);
+      } catch (e) {
+        console.error('Erro ao agendar notificação:', e);
       }
-    } else if (reminder.enabled && alreadyTaken) {
-      console.log(`👍 "${reminder.supplementName}" já tomado hoje. Nenhum lembrete necessário.`);
+    } else {
+      console.log(`⏭️ "${reminder.supplementName}" desativado ou já tomado hoje.`);
     }
+  }
+}
+
+// Utilitário de debug
+export async function logAllScheduledNotifications() {
+  try {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    console.log('📋 Notificações agendadas:', scheduled);
+    return scheduled;
+  } catch (e) {
+    console.error('Erro ao obter notificações agendadas:', e);
+    return [];
   }
 }
