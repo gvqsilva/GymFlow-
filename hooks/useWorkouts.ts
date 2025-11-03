@@ -1,8 +1,8 @@
 // hooks/useWorkouts.ts
 
-import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { WORKOUT_DATA, Workout, Exercise } from '../constants/workoutData';
+import { useCallback, useEffect, useState } from 'react';
+import { Exercise, WORKOUT_DATA, Workout } from '../constants/workoutData';
 
 const WORKOUTS_STORAGE_KEY = 'user_workouts_storage';
 
@@ -77,14 +77,14 @@ export function useWorkouts() {
     };
 
     // NOVA FUNÇÃO para adicionar uma ficha de treino
-    const addWorkout = async (name: string, groups: string) => {
+    const addWorkout = async (name: string, groups: string, exercises?: Exercise[]) => {
         const newWorkouts = { ...workouts };
         const newWorkoutId = `workout_${Date.now()}`;
         const newWorkout: Workout = {
             id: newWorkoutId,
             name: name,
             groups: groups,
-            exercises: [],
+            exercises: exercises || [],
         };
         newWorkouts[newWorkoutId] = newWorkout;
         await saveWorkouts(newWorkouts);

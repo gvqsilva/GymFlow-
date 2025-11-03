@@ -1,20 +1,23 @@
 // app/editar-ficha/[id].tsx
 
-import React from 'react';
-import { View, StyleSheet, Pressable, Text, Alert } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useWorkouts } from '../../hooks/useWorkouts';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { ExerciseSelector } from '../../components/ExerciseSelectorEnhanced';
+import { Exercise as CatalogExercise } from '../../constants/exercisesData';
 import { Exercise } from '../../constants/workoutData';
+import { useWorkouts } from '../../hooks/useWorkouts';
 
 const themeColor = '#5a4fcf';
 
 export default function EditWorkoutScreen() {
     const { id, title } = useLocalSearchParams<{ id: string, title: string }>();
-    const { workouts, deleteExercise, reorderExercises, refreshWorkouts } = useWorkouts();
+    const { workouts, deleteExercise, reorderExercises, refreshWorkouts, addExercise } = useWorkouts();
     const router = useRouter();
+    const [showExerciseSelector, setShowExerciseSelector] = useState(false);
 
     useFocusEffect(
         React.useCallback(() => {
@@ -23,6 +26,16 @@ export default function EditWorkoutScreen() {
     );
     
     const workout = id ? workouts[id] : null;
+
+    const getSelectedExerciseIds = (): string[] => {
+        return workout?.exercises.map(ex => ex.id) || [];
+    };
+
+    useFocusEffect(
+        React.useCallback(() => {
+            refreshWorkouts();
+        }, [])
+    );
 
     const handleDelete = (exerciseId: string, exerciseName: string) => {
         if (!id) return;
@@ -34,6 +47,24 @@ export default function EditWorkoutScreen() {
                 { text: "Apagar", style: "destructive", onPress: () => deleteExercise(id, exerciseId) }
             ]
         )
+    };
+
+    const handleSelectExercise = (catalogExercise: CatalogExercise) => {
+        if (!id) return;
+        
+        // Converter CatalogExercise para Exercise
+        const exercise: Exercise = {
+            id: catalogExercise.id,
+            name: catalogExercise.name,
+            muscle: catalogExercise.muscle,
+            series: 3, // Valor padrão
+            reps: '12', // Valor padrão
+            obs: '',
+            gifUrl: catalogExercise.videoUrl || ''
+        };
+        
+        addExercise(id, exercise);
+        setShowExerciseSelector(false);
     };
 
     if (!workout) {
@@ -49,8 +80,8 @@ export default function EditWorkoutScreen() {
                     style={[styles.exerciseCard, { backgroundColor: isActive ? '#e9e9e9' : 'white' }]}
                 >
                     <View style={styles.exerciseInfo}>
-                        <Text style={styles.exerciseName}>{item.name}</Text>
-                        <Text style={styles.exerciseDetails}>{item.series} séries x {item.reps} reps</Text>
+                        <Text style={styles.exerciseName}>{item.name} </Text>
+                        <Text style={styles.exerciseDetails}>{item.series} séries x {item.reps} reps </Text>
                     </View>
                     <View style={styles.actions}>
                         <Pressable onPress={() => router.push({ pathname: '/exercicio-modal', params: { workoutId: id, exerciseId: item.id } })}>
@@ -79,11 +110,18 @@ export default function EditWorkoutScreen() {
                     renderItem={renderItem}
                     containerStyle={{ padding: 15 }}
                 />
-                <Pressable style={styles.addButton} onPress={() => router.push({ pathname: '/exercicio-modal', params: { workoutId: id } })}>
+                <Pressable style={styles.addButton} onPress={() => setShowExerciseSelector(true)}>
                     <Ionicons name="add" size={32} color="white" />
                     <Text style={styles.addButtonText}>Adicionar Exercício </Text>
                 </Pressable>
             </View>
+            
+            <ExerciseSelector
+                visible={showExerciseSelector}
+                onClose={() => setShowExerciseSelector(false)}
+                onSelectExercise={handleSelectExercise}
+                selectedExercises={getSelectedExerciseIds()}
+            />
         </GestureHandlerRootView>
     );
 }

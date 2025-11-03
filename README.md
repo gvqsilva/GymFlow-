@@ -238,12 +238,3 @@ npm run tsc -- --noEmit
   - O serviço de notificações (`lib/notificationService.ts`) usa `scheduleNotificationAsync` e persiste IDs para permitir cancelamento e re-agendamento.
   - Se as notificações estiverem a disparar imediatamente ao activar um lembrete, verifique agendamentos antigos e o ambiente (Expo Go vs Dev Client / standalone).
 
----
-
-Se quiser, posso:
-
-- Adicionar exemplos JSON das chaves de AsyncStorage no README
-- Centralizar `getLocalDateString` em `utils/date.ts` e atualizar usos no projeto
-- Adicionar um pequeno script `npm run clear-storage` (wrapper) para limpar chaves de desenvolvimento
-
-Diga qual desses prefere e eu aplico.
