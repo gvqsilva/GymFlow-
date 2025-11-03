@@ -1,19 +1,19 @@
 // app/(tabs)/index.tsx
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, Pressable, StatusBar, ScrollView, Modal, FlatList, Alert } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
-import { Link } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { useWorkouts } from '../../hooks/useWorkouts';
-import { useSportsContext } from '../../context/SportsProvider';
-import { useSupplements, Supplement } from '../../hooks/useSupplements';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import ViewShot from 'react-native-view-shot';
+import { Link } from 'expo-router';
 import * as Sharing from 'expo-sharing';
-import ShareCard from '../../components/ShareCard';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, FlatList, Modal, Pressable, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import Toast from 'react-native-toast-message';
+import ViewShot from 'react-native-view-shot';
+import ShareCard from '../../components/ShareCard';
+import { useSportsContext } from '../../context/SportsProvider';
+import { Supplement, useSupplements } from '../../hooks/useSupplements';
+import { useWorkouts } from '../../hooks/useWorkouts';
 
 const themeColor = '#5a4fcf';
 
@@ -261,7 +261,7 @@ export default function HomeScreen() {
                         </View>
                     </Pressable>
 
-                    {supplements.map((supplement) => {
+                    {supplements.filter(s => s.showOnHome !== false).map((supplement) => {
                         const today = getLocalDateString();
                         const currentValue = supplementsHistory[today]?.[supplement.id];
 

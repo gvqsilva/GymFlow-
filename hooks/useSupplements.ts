@@ -1,7 +1,7 @@
 // hooks/useSupplements.ts
 
-import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCallback, useEffect, useState } from 'react';
 
 export type TrackingType = 'daily_check' | 'counter';
 
@@ -11,14 +11,15 @@ export interface Supplement {
     dose: number;
     unit: string; // ex: 'g', 'mg', 'scoop', 'cápsula'
     trackingType: TrackingType;
+    showOnHome?: boolean;
 }
 
 const SUPPLEMENTS_STORAGE_KEY = 'user_supplements_list';
 
 // Dados iniciais para o utilizador começar
 const INITIAL_SUPPLEMENTS_DATA: Supplement[] = [
-    { id: 'supp_creatine', name: 'Creatina', dose: 6, unit: 'g', trackingType: 'daily_check' },
-    { id: 'supp_whey', name: 'Whey Protein', dose: 30, unit: 'g', trackingType: 'counter' },
+    { id: 'supp_creatine', name: 'Creatina', dose: 6, unit: 'g', trackingType: 'daily_check', showOnHome: true },
+    { id: 'supp_whey', name: 'Whey Protein', dose: 30, unit: 'g', trackingType: 'counter', showOnHome: true },
 ];
 
 export function useSupplements() {
@@ -30,7 +31,12 @@ export function useSupplements() {
         try {
             const storedData = await AsyncStorage.getItem(SUPPLEMENTS_STORAGE_KEY);
             if (storedData) {
-                setSupplements(JSON.parse(storedData));
+                // Normalize older entries that may not have `showOnHome`
+                const parsed: Supplement[] = JSON.parse(storedData);
+                const normalized = parsed.map(s => ({ showOnHome: s.showOnHome ?? true, ...s }));
+                setSupplements(normalized);
+                // Persist normalized shape so other parts of the app can rely on the field
+                await AsyncStorage.setItem(SUPPLEMENTS_STORAGE_KEY, JSON.stringify(normalized));
             } else {
                 setSupplements(INITIAL_SUPPLEMENTS_DATA);
                 await AsyncStorage.setItem(SUPPLEMENTS_STORAGE_KEY, JSON.stringify(INITIAL_SUPPLEMENTS_DATA));
@@ -57,7 +63,7 @@ export function useSupplements() {
     };
 
     const addSupplement = async (supplement: Omit<Supplement, 'id'>) => {
-        const newSupplement: Supplement = { ...supplement, id: `supp_${Date.now()}` };
+        const newSupplement: Supplement = { ...supplement, id: `supp_${Date.now()}`, showOnHome: supplement.showOnHome ?? true };
         const updatedSupplements = [...supplements, newSupplement];
         await saveSupplements(updatedSupplements);
     };

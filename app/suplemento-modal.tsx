@@ -1,9 +1,9 @@
 // app/suplemento-modal.tsx
 
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, Pressable, Alert, ScrollView } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useSupplements, TrackingType } from '../hooks/useSupplements';
+import React, { useEffect, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { TrackingType, useSupplements } from '../hooks/useSupplements';
 
 const themeColor = '#5a4fcf';
 
@@ -16,6 +16,7 @@ export default function SupplementModal() {
     const [dose, setDose] = useState('');
     const [unit, setUnit] = useState('');
     const [trackingType, setTrackingType] = useState<TrackingType>('daily_check');
+    const [showOnHome, setShowOnHome] = useState<boolean>(true);
 
     const isEditing = !!id;
 
@@ -27,6 +28,7 @@ export default function SupplementModal() {
                 setDose(supplementToEdit.dose.toString());
                 setUnit(supplementToEdit.unit);
                 setTrackingType(supplementToEdit.trackingType);
+                setShowOnHome(supplementToEdit.showOnHome !== false);
             }
         }
     }, [id, supplements, isEditing]);
@@ -42,6 +44,7 @@ export default function SupplementModal() {
             dose: parseFloat(dose.replace(',', '.')) || 0,
             unit,
             trackingType,
+            showOnHome,
         };
 
         if (isEditing) {
