@@ -1,9 +1,9 @@
 // app/(tabs)/config.tsx
 
-import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, Pressable, ScrollView } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Stack, useRouter } from 'expo-router';
+import React from 'react';
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 const themeColor = '#5a4fcf';
 
@@ -42,6 +42,15 @@ export default function SettingsScreen() {
                 </Pressable>
                 
                 <Text style={styles.sectionHeader}>Personalização</Text>
+
+                <Pressable style={styles.linkCard} onPress={() => router.push('/configurar-home')}>
+                    <Ionicons name="home-outline" size={28} color={themeColor} />
+                    <View style={styles.cardTextContainer}>
+                        <Text style={styles.cardTitle}>Configurar Tela Home</Text>
+                        <Text style={styles.cardSubtitle}>Personalize cards, métricas e metas </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={24} color="gray" />
+                </Pressable>
 
                 <Pressable style={styles.linkCard} onPress={() => router.push('/gerir-suplementos')}>
                     <Ionicons name="flask-outline" size={28} color={themeColor} />

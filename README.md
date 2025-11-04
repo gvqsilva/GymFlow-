@@ -1,6 +1,6 @@
 # 📱 GymFlow — Diário de Treino, Nutrição e Suplementação
 
-**Última Actualização:** 02 de Novembro de 2025
+**Última Actualização:** 03 de Novembro de 2025
 **Estado:** Funcionalidade local completa — pronto para testes no Expo (iOS/Android/Web)
 
 ---
@@ -15,55 +15,6 @@
 - [Resolução de problemas comuns](#resolução-de-problemas-comuns)
 - [Desenvolvimento e contribuições](#desenvolvimento-e-contribuições)
 - [Roadmap & melhorias futuras](#roadmap--melhorias-futuras)
-
----
-
-## Visão geral
-
-GymFlow é uma aplicação móvel (Expo/React Native + TypeScript) desenhada para acompanhar treinos, nutrição e suplementação do utilizador.
-
-Principais objetivos:
-- Gerir fichas de musculação e outras modalidades
-- Registar alimentos e acompanhar o balanço energético diário
-- Agendar e gerir suplementos e lembretes
-- Fornecer métricas simples (IMC, TDEE estimado, calorias gastas)
-
----
-
-## Funcionalidades principais
-
-- Dashboard diário com resumo de calorias consumidas e gastas
-- Registro de treinos por desporto (inclui fluxos dedicados para Musculação e Natação)
-- Fichas de treino (Musculação) com contabilização automática do treino do dia
-- Cálculo de gasto calórico por atividade usando METs (arquivo: `constants/metData.ts`)
-- Diário alimentar com busca inteligente e agrupamento por refeição
-- Perfil do utilizador com cálculo de IMC, idade e TDEE estimado (`perfil.tsx`, `perfil-modal.tsx`)
-- Calendário com marcações por balanço energético (verde/vermelho)
-- Gestão completa (CRUD) para: suplementos, fichas, desportos
-- Operação offline: todos os dados guardados localmente em AsyncStorage
-
----
-
-## Instalação e execução
-
-# 📱 GymFlow — Diário de Treino, Nutrição e Suplementação
-
-**Última Actualização:** 02 de Novembro de 2025
-**Estado:** Funcionalidade local completa — pronto para testes no Expo (iOS/Android/Web)
-
----
-
-## 📑 Sumário
-
-- [Visão geral](#visão-geral)
-- [Funcionalidades principais](#funcionalidades-principais)
-- [Instalação e execução](#instalação-e-execução)
-- [Estrutura do projeto](#estrutura-do-projeto)
-- [Armazenamento de dados e chaves importantes](#armazenamento-de-dados-e-chaves-importantes)
-- [Resolução de problemas comuns](#resolução-de-problemas-comuns)
-- [Desenvolvimento e contribuições](#desenvolvimento-e-contribuições)
-- [Roadmap & melhorias futuras](#roadmap--melhorias-futuras)
-- [Notas do desenvolvedor (mudanças recentes)](#notas-do-desenvolvedor)
 
 ---
 
@@ -141,12 +92,17 @@ npm run tsc -- --noEmit
 - `app/` — telas e rotas (Expo Router)
   - `perfil.tsx`, `perfil-modal.tsx` — perfil do utilizador
   - `fichas/` — telas de musculação e exercícios
+  - `ficha-modal.tsx` — criação de novas fichas com seletor avançado de exercícios
+  - `editar-ficha/[id].tsx` — edição de fichas existentes
   - `(tabs)/` — telas de navegação principal (Home, Esportes, Historico, etc.)
 - `components/` — componentes reaproveitáveis (cards, modais, etc.)
-- `constants/` — constantes da app (`metData.ts`, `colors.ts`, etc.)
+  - `ExerciseSelectorEnhanced.tsx` — seletor avançado de exercícios com animações e favoritos
+- `constants/` — constantes da app (`metData.ts`, `colors.ts`, `exercisesData.ts`, etc.)
+  - `exercisesData.ts` — banco de dados interno com 74+ exercícios categorizados
 - `data/` — base local de alimentos (`foodData.json`)
 - `hooks/` — hooks customizados (`useWorkouts`, `useSports`, etc.)
 - `utils/` — utilitários como `calorieCalculator.ts`
+- `assets/videos/` — vídeos demonstrativos dos exercícios (GIFs/WebP)
 
 ---
 
@@ -228,7 +184,50 @@ npm run tsc -- --noEmit
 
 ---
 
+## 🚀 Funcionalidades Recentes (Novembro 2025)
+
+### Sistema Avançado de Seleção de Exercícios
+- **Banco de dados interno completo**: 74+ exercícios organizados em 11 grupos musculares
+- **Interface otimizada para mobile**: Chips de filtro maiores e mais legíveis para melhor usabilidade
+- **Sistema de favoritos**: Marque exercícios preferidos com estrela e filtre rapidamente
+- **Preview inteligente**: Toque longo em qualquer exercício para ver detalhes e vídeo demonstrativo
+- **Animações fluidas**: Efeitos de bounce na seleção e transições suaves
+- **Contador em tempo real**: Badge no header mostra quantos exercícios foram selecionados
+- **Busca inteligente**: Encontre exercícios rapidamente por nome
+- **Carregamento otimizado**: Estados de loading e feedback visual aprimorado
+
+### Melhorias Técnicas
+- **Assets locais**: Vídeos demonstrativos integrados com `require()` para melhor performance
+- **TypeScript aprimorado**: Tipagem mais robusta para exercícios e componentes
+- **Arquitetura componentizada**: `ExerciseSelectorEnhanced` reutilizável em criação e edição de fichas
+- **Performance otimizada**: useMemo e useCallback para renderização eficiente
+
+### Compatibilidade de Vídeos
+- **Formatos suportados**: GIF e WebP para demonstrações visuais
+- **Carregamento inteligente**: Fallback para ícones quando vídeo não disponível
+- **Otimização mobile**: Compressão adequada para dispositivos móveis
+
+---
+
 ## Notas do desenvolvedor (mudanças recentes importantes)
+
+### Sistema de Exercícios (Novembro 2025)
+- **ExerciseSelectorEnhanced**: Componente principal para seleção de exercícios com funcionalidades avançadas
+  - Integrado em `ficha-modal.tsx` (criação) e `editar-ficha/[id].tsx` (edição)
+  - Sistema de favoritos persistente no estado local
+  - Animações implementadas com Animated API do React Native
+  - Filtros otimizados por grupo muscular + busca + favoritos
+- **exercisesData.ts**: Base de dados estruturada com 74+ exercícios
+  - Formato: `{ id, name, muscle, videoUrl: require(...) }`
+  - Organizados por 11 grupos musculares em português
+  - Assets de vídeo carregados com `require()` para melhor performance no React Native
+- **Tipagem TypeScript**: Interface `Exercise` e `ExerciseGroup` para type safety
+
+### Otimizações de UX
+- **Filter chips responsivos**: Tamanhos otimizados para touch targets móveis
+- **Loading states**: Feedback visual durante carregamento de exercícios
+- **Bounce animations**: Micro-interações para seleção de exercícios
+- **Modal preview**: Visualização rápida com long press gesture
 
 - Suplementos
   - `useSupplements` normaliza e inclui `showOnHome?: boolean` para controlar se um suplemento aparece no Home.
