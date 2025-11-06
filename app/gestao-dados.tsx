@@ -1,15 +1,17 @@
 // app/gestao-dados.tsx
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, Modal, FlatList, Pressable, Alert, ActivityIndicator } from 'react-native';
-import { Stack, useFocusEffect, useRouter, useNavigation } from 'expo-router'; 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Calendar, LocaleConfig } from 'react-native-calendars';
-import { useWorkouts } from '../hooks/useWorkouts';
-import { useSupplements } from '../hooks/useSupplements'; 
-import { useSports } from '../hooks/useSports';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Stack, useFocusEffect, useNavigation, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Modal, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Calendar, LocaleConfig } from 'react-native-calendars';
 import Toast from 'react-native-toast-message';
+import { useSports } from '../hooks/useSports';
+import { useSupplements } from '../hooks/useSupplements';
+import { useWorkouts } from '../hooks/useWorkouts';
+import { firebaseSyncService } from '../services/firebaseSync';
+import { sortWorkoutsByName } from '../utils/workoutUtils';
 
 const themeColor = '#5a4fcf';
 const SUPPLEMENTS_HISTORY_KEY = 'supplements_history'; 
@@ -136,6 +138,32 @@ export default function DataManagementScreen() {
         
         const loadHistoryForCalendar = async () => {
             try {
+                // 🔥 SINCRONIZAÇÃO FIREBASE - Carrega dados da nuvem primeiro
+                try {
+                    // Carrega histórico de treinos
+                    const firebaseWorkoutHistory = await firebaseSyncService.loadWorkoutHistory();
+                    if (firebaseWorkoutHistory && firebaseWorkoutHistory.length > 0) {
+                        await AsyncStorage.setItem('workoutHistory', JSON.stringify(firebaseWorkoutHistory));
+                        console.log('✅ Histórico de treinos carregado do Firebase');
+                    }
+
+                    // Carrega histórico de alimentação
+                    const firebaseFoodHistory = await firebaseSyncService.loadFoodHistory();
+                    if (firebaseFoodHistory && firebaseFoodHistory.length > 0) {
+                        await AsyncStorage.setItem('foodHistory', JSON.stringify(firebaseFoodHistory));
+                        console.log('✅ Histórico de alimentação carregado do Firebase');
+                    }
+
+                    // Carrega histórico de suplementos
+                    const firebaseSupplementsHistory = await firebaseSyncService.loadSupplementsHistory();
+                    if (firebaseSupplementsHistory) {
+                        await AsyncStorage.setItem(SUPPLEMENTS_HISTORY_KEY, JSON.stringify(firebaseSupplementsHistory));
+                        console.log('✅ Histórico de suplementos carregado do Firebase');
+                    }
+                } catch (syncError) {
+                    console.warn('⚠️ Falha ao carregar do Firebase, usando dados locais:', syncError);
+                }
+
                 const workoutHistoryJSON = await AsyncStorage.getItem('workoutHistory');
                 setWorkoutHistory(workoutHistoryJSON ? JSON.parse(workoutHistoryJSON) : []);
                 
@@ -219,6 +247,15 @@ export default function DataManagementScreen() {
                 { text: "Apagar", style: "destructive", onPress: async () => {
                     const newHistory = (workoutHistory || []).filter(entry => entry.id !== activityIdToDelete);
                     await AsyncStorage.setItem('workoutHistory', JSON.stringify(newHistory));
+                    
+                    // Sincronizar com Firebase
+                    try {
+                        await firebaseSyncService.syncWorkoutHistory(newHistory);
+                        console.log('✅ Histórico de treinos sincronizado com Firebase após exclusão');
+                    } catch (syncError) {
+                        console.warn('⚠️ Falha na sincronização com Firebase:', syncError);
+                    }
+                    
                     setWorkoutHistory(newHistory); // Atualiza o estado para refletir na UI
                     loadAllInitialData(); // Recarrega os totais
                     Toast.show({ type: 'success', text1: 'Atividade apagada com sucesso.' });
@@ -236,7 +273,8 @@ export default function DataManagementScreen() {
                 isSport: true,
             }));
 
-        const gymWorkouts: ActivityOption[] = Object.values(workouts || {}).map((w: any) => ({ 
+        // Ordenar fichas por nome para manter ordem consistente
+        const gymWorkouts: ActivityOption[] = sortWorkoutsByName(workouts || {}).map((w: any) => ({ 
             id: w.id, 
             name: w.name, 
             isSport: false, 

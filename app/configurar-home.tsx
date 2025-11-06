@@ -2,18 +2,14 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Haptics from 'expo-haptics';
 import { Stack, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import Toast from 'react-native-toast-message';
+import { authService } from '../services/authService';
+import { firebaseSyncService } from '../services/firebaseSync';
 
 const themeColor = '#5a4fcf';
-
-interface VisibleMetrics {
-    calories: boolean;
-    activities: boolean;
-    time: boolean;
-}
 
 interface UserGoals {
     dailyCalories: number;
@@ -22,123 +18,340 @@ interface UserGoals {
     dailyTime: number;
 }
 
+interface VisibleMetrics {
+    calories: boolean;
+    activities: boolean;
+    time: boolean;
+}
+
+const defaultGoals: UserGoals = {
+    dailyCalories: 600,
+    weeklyWorkouts: 4,
+    weeklyActivities: 8,
+    dailyTime: 120,
+};
+
+const defaultVisibility: VisibleMetrics = {
+    calories: true,
+    activities: true,
+    time: true,
+};
+
 export default function ConfigurarHomeScreen() {
     const router = useRouter();
-    const [visibleMetrics, setVisibleMetrics] = useState<VisibleMetrics>({
-        calories: true,
-        activities: true,
-        time: true
-    });
-    const [userGoals, setUserGoals] = useState<UserGoals>({
-        dailyCalories: 500,
-        weeklyWorkouts: 4,
-        weeklyActivities: 5,
-        dailyTime: 120
-    });
-    const [loading, setLoading] = useState(true);
+    const [goals, setGoals] = useState<UserGoals>(defaultGoals);
+    const [visibleMetrics, setVisibleMetrics] = useState<VisibleMetrics>(defaultVisibility);
+    const [isLoading, setIsLoading] = useState(true);
 
-    // Carregar configurações existentes
     useEffect(() => {
-        loadUserConfig();
+        loadSettings();
     }, []);
 
-    const loadUserConfig = async () => {
+    const loadSettings = async () => {
         try {
-            const configJSON = await AsyncStorage.getItem('userConfig');
-            if (configJSON) {
-                const config = JSON.parse(configJSON);
-                setVisibleMetrics(config.visibleMetrics || { calories: true, activities: true, time: true });
-                setUserGoals(config.userGoals || { dailyCalories: 500, weeklyWorkouts: 4, weeklyActivities: 5, dailyTime: 120 });
+            console.log('📖 Carregando configurações...');
+            
+            // Se está autenticado e pode sincronizar com Firebase
+            if (authService.shouldSyncWithFirebase() && !authService.isInOfflineMode()) {
+                console.log('🔥 Carregando configurações do Firebase...');
+                
+                // Tentar carregar do Firebase primeiro
+                const firebaseConfig = await firebaseSyncService.loadUserConfig();
+                if (firebaseConfig) {
+                    console.log('🔥 Configurações do Firebase:', firebaseConfig);
+                    
+                    if (firebaseConfig.userGoals) {
+                        setGoals({ ...defaultGoals, ...firebaseConfig.userGoals });
+                        console.log('🎯 Metas carregadas do Firebase:', firebaseConfig.userGoals);
+                    }
+                    if (firebaseConfig.visibleMetrics) {
+                        setVisibleMetrics({ ...defaultVisibility, ...firebaseConfig.visibleMetrics });
+                        console.log('👁️ Visibilidade carregada do Firebase:', firebaseConfig.visibleMetrics);
+                    }
+                    
+                    // Salvar também localmente para cache
+                    await AsyncStorage.setItem('userConfig', JSON.stringify(firebaseConfig));
+                    return;
+                }
+                console.log('🔥 Nenhuma configuração encontrada no Firebase, tentando local...');
             }
-        } catch (e) {
-            console.error("Failed to load user config.", e);
+            
+            // Fallback para AsyncStorage local
+            const savedConfig = await AsyncStorage.getItem('userConfig');
+            console.log('� Carregando configurações locais:', savedConfig);
+            
+            if (savedConfig) {
+                const config = JSON.parse(savedConfig);
+                console.log('� Config local parseado:', config);
+                
+                if (config.userGoals) {
+                    setGoals({ ...defaultGoals, ...config.userGoals });
+                    console.log('🎯 Metas carregadas localmente:', config.userGoals);
+                }
+                if (config.visibleMetrics) {
+                    setVisibleMetrics({ ...defaultVisibility, ...config.visibleMetrics });
+                    console.log('👁️ Visibilidade carregada localmente:', config.visibleMetrics);
+                }
+            } else {
+                console.log('� Nenhuma configuração local encontrada, usando padrões');
+            }
+        } catch (error) {
+            console.warn('❌ Erro ao carregar configurações:', error);
+            Toast.show({
+                type: 'error',
+                text1: 'Erro ao carregar configurações',
+                text2: 'Usando configurações padrão',
+            });
         } finally {
-            setLoading(false);
+            setIsLoading(false);
         }
     };
 
-    const saveUserConfig = async () => {
+    const saveSettings = async () => {
         try {
+            console.log('💾 Salvando configurações...');
+            
+            // Primeiro carregar configuração existente para não sobrescrever outros dados
+            let existingConfig = {};
+            
+            // Se está autenticado e pode sincronizar com Firebase
+            if (authService.shouldSyncWithFirebase() && !authService.isInOfflineMode()) {
+                console.log('🔥 Carregando configuração existente do Firebase...');
+                try {
+                    const firebaseConfig = await firebaseSyncService.loadUserConfig();
+                    if (firebaseConfig) {
+                        existingConfig = firebaseConfig;
+                        console.log('🔥 Configuração existente do Firebase:', existingConfig);
+                    }
+                } catch (firebaseError) {
+                    console.warn('🔥 Erro ao carregar do Firebase, usando local:', firebaseError);
+                }
+            }
+            
+            // Fallback para AsyncStorage local se não conseguiu do Firebase
+            if (Object.keys(existingConfig).length === 0) {
+                const existingConfigJSON = await AsyncStorage.getItem('userConfig');
+                existingConfig = existingConfigJSON ? JSON.parse(existingConfigJSON) : {};
+                console.log('📱 Configuração existente local:', existingConfig);
+            }
+            
+            // Mesclar com as novas configurações
             const config = {
-                visibleMetrics,
-                userGoals
+                ...existingConfig,
+                userGoals: goals,
+                visibleMetrics: visibleMetrics,
+                lastModified: new Date().toISOString(),
+                version: '1.0'
             };
+            
+            console.log('💾 Config final a ser salvo:', config);
+            
+            // Salvar localmente primeiro (para cache)
             await AsyncStorage.setItem('userConfig', JSON.stringify(config));
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        } catch (e) {
-            console.error("Failed to save user config.", e);
-            Alert.alert('Erro', 'Não foi possível salvar as configurações.');
+            console.log('📱 Configurações salvas localmente');
+            
+            // Se está autenticado e pode sincronizar com Firebase
+            if (authService.shouldSyncWithFirebase() && !authService.isInOfflineMode()) {
+                console.log('🔥 Sincronizando com Firebase...');
+                
+                try {
+                    await firebaseSyncService.saveUserConfig(config);
+                    console.log('🔥 Configurações sincronizadas com Firebase com sucesso');
+                    
+                    Toast.show({
+                        type: 'success',
+                        text1: 'Configurações salvas',
+                        text2: 'Sincronizadas com a nuvem ☁️',
+                    });
+                } catch (firebaseError) {
+                    console.warn('🔥 Erro ao sincronizar com Firebase:', firebaseError);
+                    Toast.show({
+                        type: 'info',
+                        text1: 'Configurações salvas',
+                        text2: 'Apenas localmente (sem conexão)',
+                    });
+                }
+            } else {
+                console.log('📱 Salvando apenas localmente (offline ou não autenticado)');
+                Toast.show({
+                    type: 'success',
+                    text1: 'Configurações salvas',
+                    text2: 'Volte à home para ver as alterações',
+                });
+            }
+            
+        } catch (error) {
+            console.error('❌ Erro ao salvar configurações:', error);
+            Toast.show({
+                type: 'error',
+                text1: 'Erro ao salvar',
+                text2: 'Tente novamente',
+            });
         }
     };
 
-    const toggleMetric = (metric: keyof VisibleMetrics) => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        const newVisibleMetrics = {
-            ...visibleMetrics,
-            [metric]: !visibleMetrics[metric]
-        };
-        setVisibleMetrics(newVisibleMetrics);
-    };
+    const updateGoal = async (key: keyof UserGoals, increment: boolean) => {
+        const newGoals = { ...goals };
+        const step = key === 'dailyCalories' ? 50 : key === 'dailyTime' ? 10 : 1;
+        const min = key === 'dailyCalories' ? 50 : key === 'dailyTime' ? 10 : 1;
+        const max = key === 'dailyCalories' ? 2000 : key === 'dailyTime' ? 300 : 20;
 
-    const updateGoal = (goalType: keyof UserGoals, increment: boolean) => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        const currentValue = userGoals[goalType];
-        let newValue: number;
-        
-        switch (goalType) {
-            case 'dailyCalories':
-                newValue = increment ? currentValue + 50 : Math.max(50, currentValue - 50);
-                break;
-            case 'weeklyWorkouts':
-                newValue = increment ? currentValue + 1 : Math.max(1, currentValue - 1);
-                break;
-            case 'weeklyActivities':
-                newValue = increment ? currentValue + 1 : Math.max(1, currentValue - 1);
-                break;
-            case 'dailyTime':
-                newValue = increment ? currentValue + 15 : Math.max(15, currentValue - 15);
-                break;
-            default:
-                return;
+        if (increment) {
+            newGoals[key] = Math.min(newGoals[key] + step, max);
+        } else {
+            newGoals[key] = Math.max(newGoals[key] - step, min);
         }
         
-        setUserGoals({
-            ...userGoals,
-            [goalType]: newValue
-        });
+        console.log(`🎯 Alterando ${key} para ${newGoals[key]}`);
+        
+        setGoals(newGoals);
+        
+        // Salvar imediatamente
+        try {
+            const existingConfigJSON = await AsyncStorage.getItem('userConfig');
+            const existingConfig = existingConfigJSON ? JSON.parse(existingConfigJSON) : {};
+            
+            const config = {
+                ...existingConfig,
+                userGoals: newGoals, // Usar as novas metas
+                visibleMetrics: visibleMetrics
+            };
+            
+            await AsyncStorage.setItem('userConfig', JSON.stringify(config));
+            console.log('✅ Metas salvas imediatamente:', config.userGoals);
+        } catch (error) {
+            console.error('❌ Erro ao salvar metas:', error);
+        }
     };
 
-    const resetToDefaults = () => {
+    const toggleMetricVisibility = async (metric: keyof VisibleMetrics) => {
+        const newValue = !visibleMetrics[metric];
+        const newVisibility = { ...visibleMetrics, [metric]: newValue };
+        
+        console.log(`🔄 Alterando ${metric} de ${visibleMetrics[metric]} para ${newValue}`);
+        console.log('👁️ Nova visibilidade:', newVisibility);
+        
+        setVisibleMetrics(newVisibility);
+        
+        // Salvar imediatamente
+        try {
+            const existingConfigJSON = await AsyncStorage.getItem('userConfig');
+            const existingConfig = existingConfigJSON ? JSON.parse(existingConfigJSON) : {};
+            
+            const config = {
+                ...existingConfig,
+                userGoals: goals,
+                visibleMetrics: newVisibility // Usar a nova visibilidade
+            };
+            
+            await AsyncStorage.setItem('userConfig', JSON.stringify(config));
+            console.log('✅ Visibilidade salva imediatamente:', config.visibleMetrics);
+            
+            Toast.show({
+                type: 'success',
+                text1: `Card ${metric} ${newValue ? 'ativado' : 'desativado'}`,
+                text2: 'Configuração salva automaticamente',
+            });
+        } catch (error) {
+            console.error('❌ Erro ao salvar visibilidade:', error);
+        }
+    };
+
+    const resetToDefault = () => {
         Alert.alert(
-            'Restaurar Padrões',
-            'Deseja restaurar todas as configurações para os valores padrão?',
+            'Restaurar Padrão',
+            'Tem certeza que deseja restaurar todas as configurações para o padrão?',
             [
                 { text: 'Cancelar', style: 'cancel' },
                 {
                     text: 'Restaurar',
                     style: 'destructive',
                     onPress: () => {
-                        setVisibleMetrics({ calories: true, activities: true, time: true });
-                        setUserGoals({ dailyCalories: 500, weeklyWorkouts: 4, weeklyActivities: 5, dailyTime: 120 });
-                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                    }
-                }
+                        setGoals(defaultGoals);
+                        setVisibleMetrics(defaultVisibility);
+                        saveSettings();
+                    },
+                },
             ]
         );
     };
 
-    // Salvar automaticamente quando houver mudanças
-    useEffect(() => {
-        if (!loading) {
-            saveUserConfig();
-        }
-    }, [visibleMetrics, userGoals, loading]);
+    const VisibilityCard = ({ 
+        title, 
+        subtitle, 
+        icon, 
+        iconColor,
+        value, 
+        onValueChange 
+    }: {
+        title: string;
+        subtitle: string;
+        icon: string;
+        iconColor: string;
+        value: boolean;
+        onValueChange: (value: boolean) => void;
+    }) => (
+        <View style={styles.visibilityItem}>
+            <View style={styles.visibilityLeft}>
+                <Ionicons name={icon as any} size={24} color={iconColor} />
+                <View style={styles.visibilityText}>
+                    <Text style={styles.visibilityTitle}>{title}</Text>
+                    <Text style={styles.visibilitySubtitle}>{subtitle}</Text>
+                </View>
+            </View>
+            <Switch
+                value={value}
+                onValueChange={onValueChange}
+                trackColor={{ false: '#e0e0e0', true: `${themeColor}40` }}
+                thumbColor={value ? themeColor : '#f4f3f4'}
+            />
+        </View>
+    );
 
-    if (loading) {
+    const GoalCard = ({ 
+        title, 
+        subtitle, 
+        icon, 
+        iconColor,
+        value, 
+        unit,
+        onDecrease,
+        onIncrease
+    }: {
+        title: string;
+        subtitle: string;
+        icon: string;
+        iconColor: string;
+        value: number;
+        unit: string;
+        onDecrease: () => void;
+        onIncrease: () => void;
+    }) => (
+        <View style={styles.goalCard}>
+            <View style={styles.goalLeft}>
+                <Ionicons name={icon as any} size={24} color={iconColor} />
+                <View style={styles.goalText}>
+                    <Text style={styles.goalTitle}>{title}</Text>
+                    <Text style={styles.goalSubtitle}>{subtitle}</Text>
+                </View>
+            </View>
+            <View style={styles.goalControls}>
+                <Pressable style={styles.controlButton} onPress={onDecrease}>
+                    <Ionicons name="remove" size={20} color={themeColor} />
+                </Pressable>
+                <Text style={styles.goalValue}>{value} {unit}</Text>
+                <Pressable style={styles.controlButton} onPress={onIncrease}>
+                    <Ionicons name="add" size={20} color={themeColor} />
+                </Pressable>
+            </View>
+        </View>
+    );
+
+    if (isLoading) {
         return (
             <SafeAreaView style={styles.safeArea}>
-                <View style={styles.loadingContainer}>
-                    <Text style={styles.loadingText}>Carregando configurações...</Text>
+                <View style={styles.loading}>
+                    <Text>Carregando...</Text>
                 </View>
             </SafeAreaView>
         );
@@ -156,280 +369,211 @@ export default function ConfigurarHomeScreen() {
             />
             <ScrollView style={styles.container}>
                 
-                {/* Seção de Visibilidade dos Cards */}
+                {/* Seção Visibilidade dos Cards */}
                 <Text style={styles.sectionHeader}>Visibilidade dos Cards</Text>
-                <Text style={styles.sectionDescription}>
-                    Escolha quais métricas devem aparecer na tela principal
-                </Text>
-
-                <View style={styles.card}>
-                    <View style={styles.metricRow}>
-                        <View style={styles.metricInfo}>
-                            <Ionicons name="flame-outline" size={24} color="#FF6B6B" />
-                            <View style={styles.metricTextContainer}>
-                                <Text style={styles.metricTitle}>Calorias</Text>
-                                <Text style={styles.metricSubtitle}>Mostra o gasto calórico diário</Text>
-                            </View>
-                        </View>
-                        <Switch
-                            value={visibleMetrics.calories}
-                            onValueChange={() => toggleMetric('calories')}
-                            trackColor={{ false: '#E0E0E0', true: themeColor + '40' }}
-                            thumbColor={visibleMetrics.calories ? themeColor : '#fff'}
-                        />
-                    </View>
-
+                <Text style={styles.sectionSubtitle}>Escolha quais métricas devem aparecer na tela principal</Text>
+                
+                <View style={styles.visibilityContainer}>
+                    <VisibilityCard
+                        title="Calorias"
+                        subtitle="Mostra o gasto calórico diário"
+                        icon="flame"
+                        iconColor="#FF6B6B"
+                        value={visibleMetrics.calories}
+                        onValueChange={() => toggleMetricVisibility('calories')}
+                    />
+                    
                     <View style={styles.separator} />
-
-                    <View style={styles.metricRow}>
-                        <View style={styles.metricInfo}>
-                            <Ionicons name="bar-chart-outline" size={24} color="#4ECDC4" />
-                            <View style={styles.metricTextContainer}>
-                                <Text style={styles.metricTitle}>Atividades</Text>
-                                <Text style={styles.metricSubtitle}>Contador de atividades semanais</Text>
-                            </View>
-                        </View>
-                        <Switch
-                            value={visibleMetrics.activities}
-                            onValueChange={() => toggleMetric('activities')}
-                            trackColor={{ false: '#E0E0E0', true: themeColor + '40' }}
-                            thumbColor={visibleMetrics.activities ? themeColor : '#fff'}
-                        />
-                    </View>
-
+                    
+                    <VisibilityCard
+                        title="Atividades"
+                        subtitle="Contador de atividades semanais"
+                        icon="bar-chart"
+                        iconColor="#4ECDC4"
+                        value={visibleMetrics.activities}
+                        onValueChange={() => toggleMetricVisibility('activities')}
+                    />
+                    
                     <View style={styles.separator} />
-
-                    <View style={styles.metricRow}>
-                        <View style={styles.metricInfo}>
-                            <Ionicons name="time-outline" size={24} color="#45B7D1" />
-                            <View style={styles.metricTextContainer}>
-                                <Text style={styles.metricTitle}>Tempo</Text>
-                                <Text style={styles.metricSubtitle}>Duração total das atividades</Text>
-                            </View>
-                        </View>
-                        <Switch
-                            value={visibleMetrics.time}
-                            onValueChange={() => toggleMetric('time')}
-                            trackColor={{ false: '#E0E0E0', true: themeColor + '40' }}
-                            thumbColor={visibleMetrics.time ? themeColor : '#fff'}
-                        />
-                    </View>
+                    
+                    <VisibilityCard
+                        title="Tempo"
+                        subtitle="Duração total das atividades"
+                        icon="time"
+                        iconColor="#45B7D1"
+                        value={visibleMetrics.time}
+                        onValueChange={() => toggleMetricVisibility('time')}
+                    />
                 </View>
 
-                {/* Seção de Metas Personalizadas */}
+                {/* Seção Metas Personalizadas */}
                 <Text style={styles.sectionHeader}>Metas Personalizadas</Text>
-                <Text style={styles.sectionDescription}>
-                    Ajuste suas metas individuais para melhor acompanhamento
-                </Text>
+                <Text style={styles.sectionSubtitle}>Ajuste suas metas individuais para melhor acompanhamento</Text>
 
-                <View style={styles.card}>
-                    <View style={styles.goalRow}>
-                        <View style={styles.goalInfo}>
-                            <Ionicons name="flame-outline" size={24} color="#FF6B6B" />
-                            <View style={styles.goalTextContainer}>
-                                <Text style={styles.goalTitle}>Meta Diária de Calorias</Text>
-                                <Text style={styles.goalSubtitle}>Objetivo de queima calórica por dia</Text>
-                            </View>
-                        </View>
-                        <View style={styles.goalControls}>
-                            <TouchableOpacity 
-                                style={styles.goalButton}
-                                onPress={() => updateGoal('dailyCalories', false)}
-                            >
-                                <Ionicons name="remove" size={20} color={themeColor} />
-                            </TouchableOpacity>
-                            <Text style={styles.goalValue}>{userGoals.dailyCalories} kcal</Text>
-                            <TouchableOpacity 
-                                style={styles.goalButton}
-                                onPress={() => updateGoal('dailyCalories', true)}
-                            >
-                                <Ionicons name="add" size={20} color={themeColor} />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
+                <GoalCard
+                    title="Meta Diária de Calorias"
+                    subtitle="Objetivo de queima calórica por dia"
+                    icon="flame"
+                    iconColor="#FF6B6B"
+                    value={goals.dailyCalories}
+                    unit="kcal"
+                    onDecrease={() => updateGoal('dailyCalories', false)}
+                    onIncrease={() => updateGoal('dailyCalories', true)}
+                />
 
-                    <View style={styles.separator} />
+                <GoalCard
+                    title="Treinos Semanais"
+                    subtitle="Número de treinos por semana"
+                    icon="barbell"
+                    iconColor="#4ECDC4"
+                    value={goals.weeklyWorkouts}
+                    unit="treinos"
+                    onDecrease={() => updateGoal('weeklyWorkouts', false)}
+                    onIncrease={() => updateGoal('weeklyWorkouts', true)}
+                />
 
-                    <View style={styles.goalRow}>
-                        <View style={styles.goalInfo}>
-                            <Ionicons name="barbell-outline" size={24} color="#4ECDC4" />
-                            <View style={styles.goalTextContainer}>
-                                <Text style={styles.goalTitle}>Treinos Semanais</Text>
-                                <Text style={styles.goalSubtitle}>Número de treinos por semana</Text>
-                            </View>
-                        </View>
-                        <View style={styles.goalControls}>
-                            <TouchableOpacity 
-                                style={styles.goalButton}
-                                onPress={() => updateGoal('weeklyWorkouts', false)}
-                            >
-                                <Ionicons name="remove" size={20} color={themeColor} />
-                            </TouchableOpacity>
-                            <Text style={styles.goalValue}>{userGoals.weeklyWorkouts} treinos</Text>
-                            <TouchableOpacity 
-                                style={styles.goalButton}
-                                onPress={() => updateGoal('weeklyWorkouts', true)}
-                            >
-                                <Ionicons name="add" size={20} color={themeColor} />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
+                <GoalCard
+                    title="Atividades Semanais"
+                    subtitle="Total de atividades físicas por semana"
+                    icon="trending-up"
+                    iconColor="#FFA726"
+                    value={goals.weeklyActivities}
+                    unit="atividades"
+                    onDecrease={() => updateGoal('weeklyActivities', false)}
+                    onIncrease={() => updateGoal('weeklyActivities', true)}
+                />
 
-                    <View style={styles.separator} />
+                <GoalCard
+                    title="Tempo Diário"
+                    subtitle="Duração total de exercícios por dia"
+                    icon="time"
+                    iconColor="#45B7D1"
+                    value={goals.dailyTime}
+                    unit="min"
+                    onDecrease={() => updateGoal('dailyTime', false)}
+                    onIncrease={() => updateGoal('dailyTime', true)}
+                />
 
-                    <View style={styles.goalRow}>
-                        <View style={styles.goalInfo}>
-                            <Ionicons name="trending-up-outline" size={24} color="#FF9500" />
-                            <View style={styles.goalTextContainer}>
-                                <Text style={styles.goalTitle}>Atividades Semanais</Text>
-                                <Text style={styles.goalSubtitle}>Total de atividades físicas por semana</Text>
-                            </View>
-                        </View>
-                        <View style={styles.goalControls}>
-                            <TouchableOpacity 
-                                style={styles.goalButton}
-                                onPress={() => updateGoal('weeklyActivities', false)}
-                            >
-                                <Ionicons name="remove" size={20} color={themeColor} />
-                            </TouchableOpacity>
-                            <Text style={styles.goalValue}>{userGoals.weeklyActivities} atividades</Text>
-                            <TouchableOpacity 
-                                style={styles.goalButton}
-                                onPress={() => updateGoal('weeklyActivities', true)}
-                            >
-                                <Ionicons name="add" size={20} color={themeColor} />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
+                {/* Botão Restaurar */}
+                <Pressable style={styles.resetButton} onPress={resetToDefault}>
+                    <Ionicons name="refresh-outline" size={20} color="#FF3B30" />
+                    <Text style={styles.resetButtonText}>Restaurar Configurações Padrão</Text>
+                </Pressable>
 
-                    <View style={styles.separator} />
+                {/* Botão para ver resultado */}
+                <Pressable 
+                    style={styles.previewButton} 
+                    onPress={() => {
+                        router.push('/(tabs)');
+                        Toast.show({
+                            type: 'info',
+                            text1: 'Configurações aplicadas',
+                            text2: 'Veja os cards atualizados na home',
+                        });
+                    }}
+                >
+                    <Ionicons name="eye-outline" size={20} color={themeColor} />
+                    <Text style={styles.previewButtonText}>Ver Resultado na Home</Text>
+                </Pressable>
 
-                    <View style={styles.goalRow}>
-                        <View style={styles.goalInfo}>
-                            <Ionicons name="time-outline" size={24} color="#45B7D1" />
-                            <View style={styles.goalTextContainer}>
-                                <Text style={styles.goalTitle}>Tempo Diário</Text>
-                                <Text style={styles.goalSubtitle}>Duração total de atividades por dia</Text>
-                            </View>
-                        </View>
-                        <View style={styles.goalControls}>
-                            <TouchableOpacity 
-                                style={styles.goalButton}
-                                onPress={() => updateGoal('dailyTime', false)}
-                            >
-                                <Ionicons name="remove" size={20} color={themeColor} />
-                            </TouchableOpacity>
-                            <Text style={styles.goalValue}>{userGoals.dailyTime} min</Text>
-                            <TouchableOpacity 
-                                style={styles.goalButton}
-                                onPress={() => updateGoal('dailyTime', true)}
-                            >
-                                <Ionicons name="add" size={20} color={themeColor} />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-
-                {/* Botão de Reset */}
-                <TouchableOpacity style={styles.resetButton} onPress={resetToDefaults}>
-                    <Ionicons name="refresh-outline" size={20} color="#FF6B6B" />
-                    <Text style={styles.resetButtonText}>Restaurar Padrões</Text>
-                </TouchableOpacity>
-
-                <View style={styles.bottomSpacing} />
             </ScrollView>
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    safeArea: { 
-        flex: 1, 
-        backgroundColor: '#f0f2f5' 
+    safeArea: {
+        flex: 1,
+        backgroundColor: '#f5f5f5',
     },
-    container: { 
-        flex: 1, 
-        paddingTop: 10 
+    container: {
+        flex: 1,
+        paddingTop: 20,
     },
-    loadingContainer: {
+    loading: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    loadingText: {
-        fontSize: 16,
-        color: '#666',
-    },
-    sectionHeader: { 
-        fontSize: 18, 
-        fontWeight: '700', 
-        color: '#333', 
-        paddingHorizontal: 20, 
-        marginTop: 20, 
+    sectionHeader: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#333',
+        paddingHorizontal: 20,
         marginBottom: 8,
     },
-    sectionDescription: {
+    sectionSubtitle: {
         fontSize: 14,
         color: '#666',
         paddingHorizontal: 20,
-        marginBottom: 15,
+        marginBottom: 20,
         lineHeight: 20,
     },
-    card: {
+    visibilityContainer: {
         backgroundColor: 'white',
         marginHorizontal: 20,
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 10,
-        elevation: 2,
+        borderRadius: 16,
+        marginBottom: 30,
         shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
         shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 3,
     },
-    metricRow: {
+    visibilityItem: {
+        paddingHorizontal: 20,
+        paddingVertical: 18,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingVertical: 12,
     },
-    metricInfo: {
+    visibilityLeft: {
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1,
     },
-    metricTextContainer: {
-        marginLeft: 12,
+    visibilityText: {
+        marginLeft: 15,
         flex: 1,
     },
-    metricTitle: {
+    visibilityTitle: {
         fontSize: 16,
         fontWeight: '600',
         color: '#333',
     },
-    metricSubtitle: {
-        fontSize: 12,
+    visibilitySubtitle: {
+        fontSize: 13,
         color: '#666',
         marginTop: 2,
     },
     separator: {
         height: 1,
-        backgroundColor: '#E0E0E0',
-        marginVertical: 4,
+        backgroundColor: '#f0f0f0',
+        marginHorizontal: 20,
     },
-    goalRow: {
+    goalCard: {
+        backgroundColor: 'white',
+        paddingHorizontal: 20,
+        paddingVertical: 20,
+        marginHorizontal: 20,
+        borderRadius: 16,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingVertical: 12,
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 3,
     },
-    goalInfo: {
+    goalLeft: {
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1,
     },
-    goalTextContainer: {
-        marginLeft: 12,
+    goalText: {
+        marginLeft: 15,
         flex: 1,
     },
     goalTitle: {
@@ -438,49 +582,72 @@ const styles = StyleSheet.create({
         color: '#333',
     },
     goalSubtitle: {
-        fontSize: 12,
+        fontSize: 13,
         color: '#666',
         marginTop: 2,
     },
     goalControls: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 15,
     },
-    goalButton: {
+    controlButton: {
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: themeColor + '20',
+        backgroundColor: '#f8f9fa',
         justifyContent: 'center',
         alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
     },
     goalValue: {
-        fontSize: 14,
-        fontWeight: '600',
+        fontSize: 16,
+        fontWeight: '700',
         color: '#333',
-        marginHorizontal: 16,
         minWidth: 80,
         textAlign: 'center',
     },
     resetButton: {
+        backgroundColor: '#fff5f5',
+        borderColor: '#ffdddd',
+        borderWidth: 1,
+        paddingVertical: 16,
+        paddingHorizontal: 20,
+        borderRadius: 12,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'white',
+        gap: 8,
         marginHorizontal: 20,
-        marginTop: 20,
-        paddingVertical: 16,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#FF6B6B',
+        marginTop: 30,
+        marginBottom: 30,
     },
     resetButtonText: {
-        fontSize: 16,
+        color: '#FF3B30',
         fontWeight: '600',
-        color: '#FF6B6B',
-        marginLeft: 8,
+        fontSize: 16,
     },
-    bottomSpacing: {
-        height: 30,
+    previewButton: {
+        backgroundColor: '#f0f8ff',
+        borderColor: '#b3d9ff',
+        borderWidth: 1,
+        paddingVertical: 16,
+        paddingHorizontal: 20,
+        borderRadius: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        marginHorizontal: 20,
+        marginBottom: 30,
+    },
+    previewButtonText: {
+        color: themeColor,
+        fontWeight: '600',
+        fontSize: 16,
     },
 });

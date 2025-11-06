@@ -14,6 +14,9 @@ import ShareCard from '../../components/ShareCard';
 import { useSportsContext } from '../../context/SportsProvider';
 import { Supplement, useSupplements } from '../../hooks/useSupplements';
 import { useWorkouts } from '../../hooks/useWorkouts';
+import { authService } from '../../services/authService';
+import { autoSyncService } from '../../services/autoSync';
+import { firebaseSyncService } from '../../services/firebaseSync';
 
 const themeColor = '#5a4fcf';
 const gradientColors = ['#6c5ce7', '#5a4fcf', '#4834d4'];
@@ -96,6 +99,16 @@ const getTimeEmoji = () => {
     if (currentHour < 18) return "☀️";
     if (currentHour < 20) return "🌇";
     return "🌙";
+};
+
+// ✅ NOVO: Função para obter iniciais do nome
+const getInitials = (name: string) => {
+    return name
+        .split(' ')
+        .map(word => word.charAt(0))
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
 };
 
 // ✅ MELHORADO: Componente de métricas com animações avançadas
@@ -222,11 +235,11 @@ const AnimatedMetric = ({
                     </Animated.View>
                 </View>
                 
-                <Text style={styles.metricTitle}>{title}</Text>
+                <Text style={styles.metricTitle}>{title} </Text>
                 
                 <View style={styles.metricValueContainer}>
-                    <Text style={[styles.metricValue, { color }]}>{value}</Text>
-                    {unit && <Text style={styles.metricUnit}>{unit}</Text>}
+                    <Text style={[styles.metricValue, { color }]}>{value} </Text>
+                    {unit && <Text style={styles.metricUnit}>{unit} </Text>}
                 </View>
 
                 {/* ✅ SIMPLIFICADO: Apenas mostrar progresso se expandido */}
@@ -244,8 +257,7 @@ const AnimatedMetric = ({
                         }}
                     >
                         <Text style={[styles.metricTitle, { fontSize: 12, color: '#666' }]}>
-                            {progress.toFixed(0)}% da meta ({goal} {unit})
-                        </Text>
+                            {progress.toFixed(0)}% da meta ({goal} {unit}) </Text>
                     </Animated.View>
                 )}
             </TouchableOpacity>
@@ -306,8 +318,7 @@ const CircularProgress = ({ percentage, size = 60, strokeWidth = 6, color = them
                     borderRadius: (size - strokeWidth * 2) / 2,
                 }]}>
                     <Text style={[styles.circularProgressText, { color }]}>
-                        {Math.round(percentage)}%
-                    </Text>
+                        {Math.round(percentage)}% </Text>
                 </View>
             </View>
         </View>
@@ -350,10 +361,10 @@ const QuickStat = ({ icon, title, value, unit, color = themeColor, onPress }: {
                 <View style={[styles.quickStatIcon, { backgroundColor: color + '20' }]}>
                     <Ionicons name={icon as any} size={24} color={color} />
                 </View>
-                <Text style={styles.quickStatTitle}>{title}</Text>
+                <Text style={styles.quickStatTitle}>{title} </Text>
                 <View style={styles.quickStatValueContainer}>
-                    <Text style={[styles.quickStatValue, { color }]}>{value}</Text>
-                    {unit && <Text style={styles.quickStatUnit}>{unit}</Text>}
+                    <Text style={[styles.quickStatValue, { color }]}>{value} </Text>
+                    {unit && <Text style={styles.quickStatUnit}>{unit} </Text>}
                 </View>
             </Animated.View>
         </Pressable>
@@ -402,8 +413,7 @@ const ProgressGoal = ({ title, current, goal, unit, icon }: {
                     />
                 </View>
                 <Text style={styles.progressText}>
-                    {current} / {goal} {unit}
-                </Text>
+                    {current} / {goal} {unit} </Text>
             </View>
         </View>
     );
@@ -458,6 +468,7 @@ export default function HomeScreen() {
     const { supplements, refreshSupplements } = useSupplements();
     
     const [userName, setUserName] = useState('Utilizador');
+    const [userAvatarColor, setUserAvatarColor] = useState(themeColor);
     const [weeklyGymWorkouts, setWeeklyGymWorkouts] = useState(0);
     const [supplementsHistory, setSupplementsHistory] = useState<Record<string, any>>({});
     const [weeklySummary, setWeeklySummary] = useState<{ [key: string]: number }>({});
@@ -496,8 +507,31 @@ export default function HomeScreen() {
     const loadData = useCallback(async () => {
         const today = getLocalDateString();
         try {
+            // 🔥 SINCRONIZAÇÃO FIREBASE - Carrega dados da nuvem primeiro
+            try {
+                // Carrega histórico de treinos
+                const firebaseWorkoutHistory = await firebaseSyncService.loadWorkoutHistory();
+                if (firebaseWorkoutHistory && firebaseWorkoutHistory.length > 0) {
+                    await AsyncStorage.setItem('workoutHistory', JSON.stringify(firebaseWorkoutHistory));
+                    console.log('✅ Histórico de treinos carregado do Firebase');
+                }
+
+                // Carrega histórico de suplementos
+                const firebaseSupplementsHistory = await firebaseSyncService.loadSupplementsHistory();
+                if (firebaseSupplementsHistory) {
+                    await AsyncStorage.setItem(SUPPLEMENTS_HISTORY_KEY, JSON.stringify(firebaseSupplementsHistory));
+                    console.log('✅ Histórico de suplementos carregado do Firebase');
+                }
+            } catch (syncError) {
+                console.warn('⚠️ Falha ao carregar do Firebase, usando dados locais:', syncError);
+            }
+
             const profileJSON = await AsyncStorage.getItem('userProfile');
-            if (profileJSON) setUserName(JSON.parse(profileJSON).name || 'Utilizador');
+            if (profileJSON) {
+                const profile = JSON.parse(profileJSON);
+                setUserName(profile.name || 'Utilizador');
+                setUserAvatarColor(profile.avatarColor || themeColor);
+            }
 
             const historyJSON = await AsyncStorage.getItem(SUPPLEMENTS_HISTORY_KEY);
             setSupplementsHistory(historyJSON ? JSON.parse(historyJSON) : {});
@@ -587,27 +621,89 @@ export default function HomeScreen() {
     // ✅ NOVO: Carregar configurações do usuário
     const loadUserConfig = useCallback(async () => {
         try {
+            console.log('🏠 HOME: Carregando configurações...');
+            
+            // Se está autenticado e pode sincronizar com Firebase
+            if (authService.shouldSyncWithFirebase() && !authService.isInOfflineMode()) {
+                console.log('🔥 HOME: Carregando configurações do Firebase...');
+                
+                // Tentar carregar do Firebase primeiro
+                const firebaseConfig = await firebaseSyncService.loadUserConfig();
+                if (firebaseConfig) {
+                    console.log('🔥 HOME: Configurações do Firebase:', firebaseConfig);
+                    
+                    const newVisibleMetrics = firebaseConfig.visibleMetrics || { calories: true, activities: true, time: true };
+                    const newUserGoals = firebaseConfig.userGoals || { dailyCalories: 500, weeklyWorkouts: 4, weeklyActivities: 5, dailyTime: 120 };
+                    
+                    console.log('🔥 HOME: Aplicando visibleMetrics do Firebase:', newVisibleMetrics);
+                    console.log('🔥 HOME: Aplicando userGoals do Firebase:', newUserGoals);
+                    
+                    setVisibleMetrics(newVisibleMetrics);
+                    setUserGoals(newUserGoals);
+                    
+                    // Salvar também localmente para cache
+                    await AsyncStorage.setItem('userConfig', JSON.stringify(firebaseConfig));
+                    return;
+                }
+                console.log('🔥 HOME: Nenhuma configuração encontrada no Firebase, tentando local...');
+            }
+            
+            // Fallback para AsyncStorage local
             const configJSON = await AsyncStorage.getItem('userConfig');
+            console.log('📱 HOME: Carregando userConfig local:', configJSON);
+            
             if (configJSON) {
                 const config = JSON.parse(configJSON);
-                setVisibleMetrics(config.visibleMetrics || { calories: true, activities: true, time: true });
-                setUserGoals(config.userGoals || { dailyCalories: 500, weeklyWorkouts: 4, weeklyActivities: 5, dailyTime: 120 });
+                console.log('📱 HOME: Config local parseado:', config);
+                
+                const newVisibleMetrics = config.visibleMetrics || { calories: true, activities: true, time: true };
+                const newUserGoals = config.userGoals || { dailyCalories: 500, weeklyWorkouts: 4, weeklyActivities: 5, dailyTime: 120 };
+                
+                console.log('📱 HOME: Aplicando visibleMetrics local:', newVisibleMetrics);
+                console.log('📱 HOME: Aplicando userGoals local:', newUserGoals);
+                
+                setVisibleMetrics(newVisibleMetrics);
+                setUserGoals(newUserGoals);
+            } else {
+                console.log('📱 HOME: Nenhuma config local encontrada, usando padrões');
             }
         } catch (e) {
-            console.error("Failed to load user config.", e);
+            console.error("❌ HOME: Failed to load user config.", e);
         }
     }, []);
 
     // ✅ NOVO: Salvar configurações do usuário
     const saveUserConfig = useCallback(async () => {
         try {
+            console.log('💾 HOME: Salvando configurações...');
+            
             const config = {
                 visibleMetrics,
-                userGoals
+                userGoals,
+                lastModified: new Date().toISOString(),
+                version: '1.0'
             };
+            
+            // Salvar localmente primeiro (para cache)
             await AsyncStorage.setItem('userConfig', JSON.stringify(config));
+            console.log('📱 HOME: Configurações salvas localmente');
+            
+            // Se está autenticado e pode sincronizar com Firebase
+            if (authService.shouldSyncWithFirebase() && !authService.isInOfflineMode()) {
+                console.log('🔥 HOME: Sincronizando com Firebase...');
+                
+                try {
+                    await firebaseSyncService.saveUserConfig(config);
+                    console.log('🔥 HOME: Configurações sincronizadas com Firebase com sucesso');
+                } catch (firebaseError) {
+                    console.warn('🔥 HOME: Erro ao sincronizar com Firebase:', firebaseError);
+                }
+            } else {
+                console.log('📱 HOME: Salvando apenas localmente (offline ou não autenticado)');
+            }
+            
         } catch (e) {
-            console.error("Failed to save user config.", e);
+            console.error("❌ HOME: Failed to save user config.", e);
         }
     }, [visibleMetrics, userGoals]);
     
@@ -617,6 +713,9 @@ export default function HomeScreen() {
             loadData();
             loadUserConfig();
             refreshWorkouts();
+            
+            // 🔥 INICIA SINCRONIZAÇÃO AUTOMÁTICA
+            autoSyncService.startAutoSync();
         }
     }, [isFocused, loadData, loadUserConfig, refreshWorkouts, refreshSupplements]);
 
@@ -656,6 +755,15 @@ export default function HomeScreen() {
 
         setSupplementsHistory(newHistory);
         await AsyncStorage.setItem(SUPPLEMENTS_HISTORY_KEY, JSON.stringify(newHistory));
+
+        // Sincronizar com Firebase
+        try {
+            await firebaseSyncService.syncSupplementsHistory(newHistory);
+            console.log('✅ Histórico de suplementos sincronizado com Firebase');
+        } catch (syncError) {
+            console.warn('⚠️ Falha na sincronização com Firebase:', syncError);
+            // Não mostra erro para o usuário, dados já foram salvos localmente
+        }
 
         if (supplement.trackingType === 'daily_check') {
             Toast.show({
@@ -705,16 +813,17 @@ export default function HomeScreen() {
                         <View style={styles.headerContent}>
                             <View style={styles.greetingContainer}>
                                 <Text style={styles.greetingSmall}>
-                                    {welcomeMessage}
-                                </Text>
-                                <Text style={styles.greetingLarge}>{userName}</Text>
+                                    {welcomeMessage} </Text>
+                                <Text style={styles.greetingLarge}>{userName} </Text>
                             </View>
                             <Link href="/perfil" asChild>
                                 <TouchableOpacity style={styles.profileIconContainer}>
-                                    <View style={styles.profileAvatar}>
+                                    <View style={[
+                                        styles.profileAvatar,
+                                        { backgroundColor: userAvatarColor }
+                                    ]}>
                                         <Text style={styles.profileInitial}>
-                                            {userName.charAt(0).toUpperCase()}
-                                        </Text>
+                                            {getInitials(userName)} </Text>
                                     </View>
                                 </TouchableOpacity>
                             </Link>
@@ -776,12 +885,11 @@ export default function HomeScreen() {
                             <Ionicons name="calendar-outline" size={20} color="white" />
                         </View>
                         <View style={styles.weeklyTitleContainer}>
-                            <Text style={styles.weeklyTitle}>Progresso da Semana</Text>
-                            <Text style={styles.weeklySubtitle}>{weeklyGymWorkouts}/{userGoals.weeklyWorkouts} treinos</Text>
+                            <Text style={styles.weeklyTitle}>Progresso da Semana </Text>
+                            <Text style={styles.weeklySubtitle}>{weeklyGymWorkouts}/{userGoals.weeklyWorkouts} treinos </Text>
                         </View>
                         <Text style={styles.weeklyProgressPercentage}>
-                            {Math.round((weeklyGymWorkouts / userGoals.weeklyWorkouts) * 100)}%
-                        </Text>
+                            {Math.round((weeklyGymWorkouts / userGoals.weeklyWorkouts) * 100)}% </Text>
                     </View>
                     
                     <View style={styles.weeklyProgressContent}>
@@ -799,7 +907,7 @@ export default function HomeScreen() {
                         {weeklyGymWorkouts >= userGoals.weeklyWorkouts ? (
                             <View style={styles.weeklyCompletedBadge}>
                                 <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
-                                <Text style={styles.weeklyCompletedText}>Meta Concluída! 🎉</Text>
+                                <Text style={styles.weeklyCompletedText}>Meta Concluída! 🎉 </Text>
                             </View>
                         ) : (
                             <Text style={styles.weeklyMotivationText}>
@@ -810,8 +918,7 @@ export default function HomeScreen() {
                                     : weeklyGymWorkouts === 2
                                     ? "Meio caminho! ⚡"
                                     : "Quase lá! 🚀"
-                                }
-                            </Text>
+                                } </Text>
                         )}
                     </View>
                 </View>
@@ -824,8 +931,8 @@ export default function HomeScreen() {
                                 <Ionicons name="barbell-outline" size={24} color="white" />
                             </View>
                             <View style={styles.nextWorkoutInfo}>
-                                <Text style={styles.nextWorkoutTitle}>Próximo Treino</Text>
-                                <Text style={styles.nextWorkoutName}>{nextWorkoutName}</Text>
+                                <Text style={styles.nextWorkoutTitle}>Próximo Treino </Text>
+                                <Text style={styles.nextWorkoutName}>{nextWorkoutName} </Text>
                             </View>
                         </View>
                         <Link 
@@ -833,7 +940,7 @@ export default function HomeScreen() {
                             asChild
                         >
                             <TouchableOpacity style={styles.startWorkoutButton}>
-                                <Text style={styles.startWorkoutText}>Iniciar Agora</Text>
+                                <Text style={styles.startWorkoutText}>Iniciar Agora </Text>
                                 <Ionicons name="play-circle" size={24} color="white" />
                             </TouchableOpacity>
                         </Link>
@@ -843,8 +950,7 @@ export default function HomeScreen() {
                     {supplements.filter(s => s.showOnHome !== false).length > 0 && (
                         <View style={styles.supplementsSection}>
                             <Text style={styles.sectionTitle}>
-                                <Ionicons name="medical-outline" size={20} color={theme.colors.primary} /> Suplementos Diários
-                            </Text>
+                                <Ionicons name="medical-outline" size={20} color={theme.colors.primary} /> Suplementos Diários </Text>
                             {supplements.filter(s => s.showOnHome !== false).map((supplement, index) => {
                                 const today = getLocalDateString();
                                 const currentValue = supplementsHistory[today]?.[supplement.id];
@@ -893,10 +999,9 @@ export default function HomeScreen() {
                                         <View key={supplement.id} style={styles.supplementCardEnhanced}>
                                             <View style={styles.supplementContent}>
                                                 <View style={styles.supplementInfo}>
-                                                    <Text style={styles.supplementName}>{supplement.name}</Text>
+                                                    <Text style={styles.supplementName}>{supplement.name} </Text>
                                                     <Text style={styles.supplementDose}>
-                                                        {`${supplement.dose}${supplement.unit} por dose`}
-                                                    </Text>
+                                                        {`${supplement.dose}${supplement.unit} por dose`} </Text>
                                                 </View>
                                                 <View style={styles.counterEnhanced}>
                                                     <TouchableOpacity 
@@ -908,7 +1013,7 @@ export default function HomeScreen() {
                                                     >
                                                         <Ionicons name="remove" size={18} color="white" />
                                                     </TouchableOpacity>
-                                                    <Text style={styles.counterTextEnhanced}>{count}</Text>
+                                                    <Text style={styles.counterTextEnhanced}>{count} </Text>
                                                     <TouchableOpacity 
                                                         onPress={() => {
                                                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -931,8 +1036,7 @@ export default function HomeScreen() {
                     {/* ✅ MANTIDO: Gráfico semanal com melhorias visuais */}
                     <View style={[styles.graphContainer, styles.enhancedCard]}>
                         <Text style={styles.graphTitle}>
-                            <Ionicons name="bar-chart-outline" size={20} color={theme.colors.primary} /> Atividades da Semana
-                        </Text>
+                            <Ionicons name="bar-chart-outline" size={20} color={theme.colors.primary} /> Atividades da Semana </Text>
                         <WeeklySummaryGraph data={weeklySummary} iconMap={sportIconMap} />
                     </View>
                 </View>

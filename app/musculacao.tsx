@@ -1,19 +1,18 @@
 // app/musculacao.tsx
 
-import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from 'react-native';
-import { Link, Stack, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useWorkouts } from '../hooks/useWorkouts';
+import { Link, Stack, useFocusEffect } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Workout } from '../constants/workoutData';
+import { useWorkouts } from '../hooks/useWorkouts';
+import { getSortedWorkoutIds, sortWorkoutsByName } from '../utils/workoutUtils';
 
 const themeColor = '#5a4fcf';
 
 // GRÁFICO DE FREQUÊNCIA MENSAL (LÓGICA CORRIGIDA)
 const WorkoutTypeSummary = ({ history, workouts }: { history: any[], workouts: Record<string, Workout> }) => {
-    const workoutIds = Object.keys(workouts).sort((a, b) => 
-        (workouts[a]?.name || '').localeCompare(workouts[b]?.name || '')
-    );
+    const workoutIds = getSortedWorkoutIds(workouts);
     
     const typeCounts: { [key: string]: number } = {};
     workoutIds.forEach(id => typeCounts[id] = 0);
@@ -96,7 +95,8 @@ export default function MusculacaoScreen() {
         );
     }
 
-    const workoutsList = Object.values(workouts);
+    // Ordenar fichas por nome para manter ordem consistente
+    const workoutsList = sortWorkoutsByName(workouts);
 
     return (
         <View style={styles.container}>

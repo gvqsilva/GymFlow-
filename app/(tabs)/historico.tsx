@@ -1,23 +1,22 @@
 // app/(tabs)/historico.tsx
 
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  TextInput,
-  Pressable,
-  Alert,
-  ActivityIndicator,
-  ScrollView,
-  FlatList,
-} from 'react-native';
-import { Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Stack } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+    ActivityIndicator,
+    FlatList,
+    Pressable,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View
+} from 'react-native';
 import Toast from 'react-native-toast-message';
 
 import FoodDatabase from '../../data/foodData.json';
+import { firebaseSyncService } from '../../services/firebaseSync';
 
 const themeColor = '#5a4fcf';
 
@@ -151,6 +150,18 @@ export default function HistoricoScreen() {
   const [isInputFocused, setIsInputFocused] = useState(false);
 
   const loadDailySummary = useCallback(async () => {
+    // Primeiro carrega dados do Firebase se disponível
+    try {
+      const firebaseHistory = await firebaseSyncService.loadFoodHistory();
+      if (firebaseHistory && firebaseHistory.length > 0) {
+        await AsyncStorage.setItem('foodHistory', JSON.stringify(firebaseHistory));
+        console.log('✅ Histórico de alimentação carregado do Firebase');
+      }
+    } catch (syncError) {
+      console.warn('⚠️ Falha ao carregar do Firebase, usando dados locais:', syncError);
+    }
+    
+    // Carrega resumo diário
     await getDailySummary(setDailyTotalCalories, setDailyMealsData);
   }, []);
 
@@ -172,6 +183,15 @@ export default function HistoricoScreen() {
       const existingEntries: FoodEntry[] = existingEntriesJSON ? JSON.parse(existingEntriesJSON) : [];
       existingEntries.unshift(newEntry);
       await AsyncStorage.setItem('foodHistory', JSON.stringify(existingEntries));
+      
+      // Sincronizar com Firebase
+      try {
+        await firebaseSyncService.syncFoodHistory(existingEntries);
+        console.log('✅ Histórico de alimentação sincronizado com Firebase');
+      } catch (syncError) {
+        console.warn('⚠️ Falha na sincronização com Firebase:', syncError);
+        // Não mostra erro para o usuário, dados já foram salvos localmente
+      }
     } catch (e) {
       console.error('Falha ao salvar histórico.', e);
       Toast.show({ type: 'error', text1: 'Erro ao Salvar', text2: 'Não foi possível guardar o registro.' });
@@ -293,7 +313,7 @@ export default function HistoricoScreen() {
           headerTintColor: '#fff',
         }}
       />
-      <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+      <View style={styles.container}>
         <View style={styles.summaryBox}>
           <Text style={styles.summaryTitle}>Total Consumido Hoje</Text>
           <Text style={styles.summaryKcal}>{dailyTotalCalories} Kcal</Text>
@@ -334,7 +354,6 @@ export default function HistoricoScreen() {
                     data={suggestions}
                     keyExtractor={(item) => item.name}
                     style={styles.suggestionsList}
-                    nestedScrollEnabled={true}
                     renderItem={({ item }) => (
                         <Pressable style={styles.suggestionItem} onPress={() => onSuggestionPress(item.name)}>
                             <Text style={styles.suggestionText}>{item.name}</Text>
@@ -396,7 +415,7 @@ export default function HistoricoScreen() {
         </View>
 
         <MealDetail mealData={currentMealDetails} />
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }

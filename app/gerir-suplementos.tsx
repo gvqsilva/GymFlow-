@@ -10,6 +10,7 @@ import { ActivityIndicator, Alert, FlatList, Pressable, SafeAreaView, StyleSheet
 import Toast from 'react-native-toast-message';
 import { Supplement, useSupplements } from '../hooks/useSupplements';
 import { scheduleAllReminders } from '../lib/notificationService';
+import { firebaseSyncService } from '../services/firebaseSync';
 
 const themeColor = '#5a4fcf';
 const REMINDERS_KEY = 'all_supplement_reminders';
@@ -46,6 +47,19 @@ export default function ManageSupplementsScreen() {
 
     const loadSupplementsHistory = useCallback(async () => {
         try {
+            // 🔥 SINCRONIZAÇÃO FIREBASE - Carrega dados da nuvem primeiro
+            try {
+                const firebaseSupplementsHistory = await firebaseSyncService.loadSupplementsHistory();
+                if (firebaseSupplementsHistory) {
+                    await AsyncStorage.setItem(SUPPLEMENTS_HISTORY_KEY, JSON.stringify(firebaseSupplementsHistory));
+                    setSupplementsHistory(firebaseSupplementsHistory);
+                    console.log('✅ Histórico de suplementos carregado do Firebase');
+                    return;
+                }
+            } catch (syncError) {
+                console.warn('⚠️ Falha ao carregar do Firebase, usando dados locais:', syncError);
+            }
+
             const json = await AsyncStorage.getItem(SUPPLEMENTS_HISTORY_KEY);
             setSupplementsHistory(json ? JSON.parse(json) : {});
         } catch (e) {
@@ -67,6 +81,15 @@ export default function ManageSupplementsScreen() {
 
         setSupplementsHistory(newHistory);
         await AsyncStorage.setItem(SUPPLEMENTS_HISTORY_KEY, JSON.stringify(newHistory));
+
+        // Sincronizar com Firebase
+        try {
+            await firebaseSyncService.syncSupplementsHistory(newHistory);
+            console.log('✅ Histórico de suplementos sincronizado com Firebase');
+        } catch (syncError) {
+            console.warn('⚠️ Falha na sincronização com Firebase:', syncError);
+            // Não mostra erro para o usuário, dados já foram salvos localmente
+        }
 
         if (supplement.trackingType === 'daily_check') {
             Toast.show({ type: newValue ? 'success' : 'info', text1: newValue ? `${supplement.name} registado!` : `Registo de ${supplement.name} removido.` });

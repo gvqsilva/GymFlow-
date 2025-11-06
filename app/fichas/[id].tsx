@@ -1,13 +1,15 @@
 // app/fichas/[id].tsx
 
-import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, Alert, TextInput } from 'react-native';
-import { useLocalSearchParams, Link, Stack, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useWorkouts } from '../../hooks/useWorkouts';
 import * as Haptics from 'expo-haptics';
-import { MET_DATA } from '../../constants/metData';
+import { Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Toast from 'react-native-toast-message'; // Importação do Toast
+import { MET_DATA } from '../../constants/metData';
+import { useWorkouts } from '../../hooks/useWorkouts';
+import { firebaseSyncService } from '../../services/firebaseSync';
+import { getNextWorkoutId } from '../../utils/workoutUtils';
 
 const themeColor = '#5a4fcf';
 const PROFILE_KEY = 'userProfile';
@@ -22,6 +24,7 @@ const getLocalDateString = (date = new Date()) => {
 export default function WorkoutDetailScreen() {
     const { id, title, date: dateParam } = useLocalSearchParams<{ id: string, title?: string, date?: string }>();
     const { workouts, refreshWorkouts } = useWorkouts();
+    const router = useRouter();
     const [userWeight, setUserWeight] = useState(0);
     const [performance, setPerformance] = useState<{ [key: string]: string }>({});
 
@@ -85,10 +88,8 @@ export default function WorkoutDetailScreen() {
             );
 
             const saveWorkout = async (isUpdate: boolean) => {
-                const workoutIds = Object.keys(workouts);
-                const currentIndex = workoutIds.indexOf(id);
-                const nextIndex = (currentIndex + 1) % workoutIds.length;
-                const nextWorkoutId = workoutIds[nextIndex];
+                // Usar função auxiliar para obter próximo workout ordenado
+                const nextWorkoutId = getNextWorkoutId(workouts, id);
 
                 if (!dateParam) {
                     await AsyncStorage.setItem('nextWorkoutId', nextWorkoutId);
@@ -102,15 +103,34 @@ export default function WorkoutDetailScreen() {
                 }
                 await AsyncStorage.setItem('workoutHistory', JSON.stringify(history));
 
+                // Sincronizar com Firebase
+                try {
+                    await firebaseSyncService.syncWorkoutHistory(history);
+                    console.log('✅ Histórico de treinos sincronizado com Firebase');
+                } catch (syncError) {
+                    console.warn('⚠️ Falha na sincronização com Firebase:', syncError);
+                    // Não mostra erro para o usuário, dados já foram salvos localmente
+                }
+
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
 
                 const messageAction = isUpdate ? "atualizado para" : "contabilizado como";
                 
+                console.log('🍞 Mostrando toast:', `Treino ${messageAction} ${workout.name}.`);
+                
                 Toast.show({
                   type: 'success',
                   text1: 'Sucesso!',
-                  text2: `Treino ${messageAction} ${workout.name}.`
+                  text2: `Treino ${messageAction} ${workout.name}.`,
+                  visibilityTime: 3000,
+                  topOffset: 60
                 });
+                
+                // Delay maior para garantir que o toast apareça antes de voltar
+                setTimeout(() => {
+                    console.log('⬅️ Voltando à tela anterior');
+                    router.back();
+                }, 2000);
             };
 
             if (musculacaoLogIndex === -1) {

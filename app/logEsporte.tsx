@@ -1,12 +1,13 @@
 // app/logEsporte.tsx
 
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, ScrollView } from 'react-native';
-import { useLocalSearchParams, Stack, useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 // ALTERADO: Importa também os valores padrão
-import { MET_DATA, DEFAULT_MET_VALUES } from '../constants/metData';
 import Toast from 'react-native-toast-message';
+import { DEFAULT_MET_VALUES, MET_DATA } from '../constants/metData';
+import { firebaseSyncService } from '../services/firebaseSync';
 
 const themeColor = '#5a4fcf';
 const PROFILE_KEY = 'userProfile';
@@ -117,8 +118,30 @@ export default function LogSportScreen() {
             history.push(newActivity);
             await AsyncStorage.setItem('workoutHistory', JSON.stringify(history));
 
-            Toast.show({ type: 'success', text1: 'Sucesso!', text2: `${esporte} registado com sucesso.` });
-            router.back();
+            // Sincronizar com Firebase
+            try {
+                await firebaseSyncService.syncWorkoutHistory(history);
+                console.log('✅ Histórico de treinos sincronizado com Firebase');
+            } catch (syncError) {
+                console.warn('⚠️ Falha na sincronização com Firebase:', syncError);
+                // Não mostra erro para o usuário, dados já foram salvos localmente
+            }
+
+            console.log('🍞 Mostrando toast:', `${esporte} registado com sucesso.`);
+            
+            Toast.show({ 
+                type: 'success', 
+                text1: 'Sucesso!', 
+                text2: `${esporte} registado com sucesso.`,
+                visibilityTime: 3000,
+                topOffset: 60
+            });
+            
+            // Delay maior para garantir que o toast apareça antes de voltar
+            setTimeout(() => {
+                console.log('⬅️ Voltando à tela anterior');
+                router.back();
+            }, 2000);
 
         } catch (e) {
             Toast.show({ type: 'error', text1: 'Erro', text2: 'Não foi possível registar a atividade.' });

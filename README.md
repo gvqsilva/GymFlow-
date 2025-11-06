@@ -1,6 +1,6 @@
 # 📱 GymFlow — Diário de Treino, Nutrição e Suplementação
 
-**Última Actualização:** 03 de Novembro de 2025
+**Última Actualização:** 06 de Novembro de 2025
 **Estado:** Funcionalidade local completa — pronto para testes no Expo (iOS/Android/Web)
 
 ---
@@ -50,8 +50,52 @@ Pré-requisitos:
 - Node.js (v18+ recomendado)
 - npm ou yarn
 - Expo CLI (opcional, mas recomendado): `npm install -g expo-cli`
+# 📱 GymFlow — Documentação do Projeto
 
-Passos:
+GymFlow é uma aplicação móvel construída com Expo + React Native + TypeScript para gerir treinos, nutrição e suplementação. Esta documentação descreve a arquitetura, instalação, execução, principais funcionalidades, armazenamento de dados, testes e como contribuir.
+
+---
+
+## Índice
+
+- [Visão Geral](#vis%C3%A3o-geral)
+- [Funcionalidades Principais](#funcionalidades-principais)
+- [Pré-requisitos](#pr%C3%A9-requisitos)
+- [Instalação e Execução](#instala%C3%A7%C3%A3o-e-execução)
+- [Estrutura do Projeto](#estrutura-do-projeto)
+- [Armazenamento e Formatos de Dados](#armazenamento-e-formatos-de-dados)
+- [Fluxos Principais e Arquivos Relacionados](#fluxos-principais-e-arquivos-relacionados)
+- [Debugging e Resolução de Problemas Comuns](#debugging-e-resolu%C3%A7%C3%A3o-de-problemas-comuns)
+- [Testes e Qualidade](#testes-e-qualidade)
+- [Contribuindo](#contribuindo)
+- [Roadmap & Melhorias Futuras](#roadmap--melhorias-futuras)
+- [Licença](#licença)
+
+---
+
+## Visão Geral
+
+O GymFlow ajuda utilizadores a planear e registar treinos (fichas de musculação e outras modalidades), acompanhar ingestão alimentar, gerir suplementos e visualizar métricas de progresso (IMC, TDEE estimado, balanço energético). O app suporta operação offline com sincronização opcional via Firebase.
+
+## Funcionalidades Principais
+
+- Dashboard diário com resumo de calorias consumidas vs gastas
+- Registo de treinos por modalidade (ex.: Musculação, Natação, Futebol)
+- Fichas de treino (CRUD) com seleção de exercícios e contabilização automática
+- Cálculo de gasto calórico por atividade usando METs (`constants/metData.ts`)
+- Diário alimentar com pesquisa e agrupamento por refeição (`data/foodData.json`)
+- Gestão de suplementos com lembretes e histórico diário
+- Perfil do utilizador (IMC, idade, TDEE) com persistência local
+- Calendário com marcações por balanço energético
+- Operação offline via `AsyncStorage`, com opção de sincronização com Firebase (quando autenticado)
+
+## Pré-requisitos
+
+- Node.js (v18+ recomendado)
+- npm ou yarn
+- Expo CLI (opcional): `npm install -g expo-cli`
+
+## Instalação e Execução
 
 1. Instalar dependências
 
@@ -59,7 +103,7 @@ Passos:
 npm install
 ```
 
-2. Iniciar a aplicação (modo desenvolvimento)
+2. Iniciar a aplicação (desenvolvimento)
 
 ```bash
 npm run start
@@ -69,171 +113,185 @@ expo start
 
 3. Executar no dispositivo / emulador
 
-- Android: selecione `Run on Android device/emulator` no Metro ou `npm run android`
-- iOS: selecione `Run on iOS simulator` ou `npm run ios` (macOS necessário)
+- Android: `npm run android` (ou via Metro)
+- iOS: `npm run ios` (macOS necessário)
 - Web: `npm run web`
 
-Lint e checagens rápidas:
+Comandos úteis:
 
 ```bash
-npm run lint
+npm run lint           # lint
+npm run tsc -- --noEmit  # checagem TypeScript
 ```
 
-Verificação TypeScript (recomendado antes de commits):
-
-```bash
-npm run tsc -- --noEmit
-```
-
----
-
-## Estrutura do projeto (resumo)
+## Estrutura do Projeto
 
 - `app/` — telas e rotas (Expo Router)
   - `perfil.tsx`, `perfil-modal.tsx` — perfil do utilizador
-  - `fichas/` — telas de musculação e exercícios
-  - `ficha-modal.tsx` — criação de novas fichas com seletor avançado de exercícios
+  - `fichas/` — telas de musculação e detalhe de exercícios
+  - `ficha-modal.tsx` — criação de fichas com `ExerciseSelectorEnhanced`
   - `editar-ficha/[id].tsx` — edição de fichas existentes
-  - `(tabs)/` — telas de navegação principal (Home, Esportes, Historico, etc.)
-- `components/` — componentes reaproveitáveis (cards, modais, etc.)
-  - `ExerciseSelectorEnhanced.tsx` — seletor avançado de exercícios com animações e favoritos
-- `constants/` — constantes da app (`metData.ts`, `colors.ts`, `exercisesData.ts`, etc.)
-  - `exercisesData.ts` — banco de dados interno com 74+ exercícios categorizados
-- `data/` — base local de alimentos (`foodData.json`)
-- `hooks/` — hooks customizados (`useWorkouts`, `useSports`, etc.)
-- `utils/` — utilitários como `calorieCalculator.ts`
-- `assets/videos/` — vídeos demonstrativos dos exercícios (GIFs/WebP)
+  - `(tabs)/` — navegação principal (Home, Esportes, Histórico, etc.)
 
----
+- `components/` — componentes UI reutilizáveis (cards, modais, seletores)
 
-## Armazenamento de dados e chaves importantes
+- `constants/` — dados e constantes da app (`metData.ts`, `colors.ts`, `exercisesData.ts`)
+  - `exercisesData.ts` contém um catálogo local com 74+ exercícios e referências a assets locais (GIF/WebP)
 
-A aplicação guarda todos os dados no AsyncStorage. Principais chaves:
+- `hooks/` — hooks personalizados (`useWorkouts`, `useSports`, `useSupplements`, etc.)
 
-- `userProfile` — objeto com informações do utilizador (name, weight, height, birthDate, gender, activityLevel, targetWeight, goalDate)
-- `foodHistory` — array de entradas alimentares. Cada item geralmente tem a forma:
-  - `{ id, date: 'YYYY-MM-DD', mealType, description, data: { calories, protein, carbs, fat } }`
-- `workoutHistory` — array de registos de treino. Estrutura típica:
-  - `{ id, date: 'YYYY-MM-DD', category: 'Musculação'|'Natação'|..., details: { duration, calories, performance?, notes? } }`
-- `supplements_history` — histórico/valores de suplementos por dia (formato: `{ 'YYYY-MM-DD': { [supplementId]: boolean|number } }`)
-- `user_supplements_list` — lista de suplementos do utilizador (shape atualizado com `showOnHome?: boolean`)
-- `all_supplement_reminders` — objeto com lembretes configurados pelo utilizador (horário + enabled)
-- `scheduled_notification_ids` — mapa persistido de ids retornados pelo agendador de notificações (usado para cancelar / re-agendar)
+- `services/` — integração com Firebase, sincronização e auth
 
-OBS: As datas do diário (registos por dia) são gravadas/consultadas no formato `YYYY-MM-DD` usando data local (não UTC) para evitar problemas de fuso horário. Campos que precisam de timestamp (ex.: `birthDate`, `goalDate`) podem ser salvos com `toISOString()` intencionalmente.
+- `lib/` — serviços auxiliares (ex.: `notificationService.ts`)
 
----
+- `utils/` — utilitários (ex.: `calorieCalculator.ts`, `workoutUtils.ts`)
 
-## Resolução de problemas comuns
+- `assets/` — imagens e vídeos demonstrativos
 
-- Calorias de musculação aparecem como 0:
-  - Verifique se existe `MET_DATA['Musculação']` (foi adicionada por padrão) e se o `userProfile.weight` está salvo (o cálculo usa o peso do perfil). Se o peso for 0 ou indefinido, o resultado será 0.
+## Armazenamento e Formatos de Dados
 
-- Entradas aparecem no dia seguinte (problema de fuso horário):
-  - O app grava datas no formato `YYYY-MM-DD` usando componentes de data locais. Contudo, se um fluxo usar `toISOString()` por engano para registos diários, isso pode deslocar a data em alguns fusos (ex.: Brasilia). Se encontrar esse comportamento, procure usos de `toISOString()` e prefira a função utilitária local `getLocalDateString` (pode ser centralizada em `utils/date.ts`).
+O app persiste dados no `AsyncStorage` com chaves bem definidas. Exemplos importantes:
 
-- Spinner infinito na tela de Perfil:
-  - Se não houver `userProfile` salvo, a tela de perfil agora mostra um botão "Criar Perfil" em vez de ficar em loading.
+- `userProfile` — objeto com { name, weight, height, birthDate, gender, activityLevel, targetWeight, goalDate }
+- `foodHistory` — array com entradas alimentares: `{ id, date: 'YYYY-MM-DD', mealType, description, data: { calories, protein, carbs, fat } }`
+- `workoutHistory` — array de registos: `{ id, date: 'YYYY-MM-DD', category, details }`
+- `user_supplements_list` — lista de suplementos configurados pelo utilizador
+- `supplements_history` — mapeamento diário de consumo `{ 'YYYY-MM-DD': { [supplementId]: boolean|number } }`
 
-- Notificações disparam imediatamente ao ativar um lembrete:
-  - Observado especialmente no Expo Go / simulador: o agendamento do sistema pode não se comportar exatamente como num build standalone. Para testes confiáveis, use um dispositivo físico com Dev Client ou um build de teste.
-  - A implementação atual usa `scheduleNotificationAsync` (com trigger por timestamp quando possível) e persiste os ids no AsyncStorage. Há helpers no arquivo `lib/notificationService.ts` para listar e cancelar agendamentos antigos e para re-agendar todos os lembretes.
-  - Debug rápido: cancele agendamentos antigos (helper), execute `scheduleAllReminders()` e verifique os timestamps agendados. Se continuar a disparar imediatamente, verifique o ambiente (Expo Go vs Dev Client) e reinicie o app.
+Observações sobre datas:
+- Registos diários usam o formato `YYYY-MM-DD` com componentes locais para evitar deslocamentos por fuso horário.
 
----
+## Sincronização com Firebase (opcional)
 
-## Desenvolvimento e contribuições
+O projeto inclui um serviço de sincronização com Firebase para dados selecionados (workouts, histórico, e configurações do utilizador). Comportamento básico:
 
-- Recomenda-se criar uma branch por feature: `git checkout -b feat/nome-da-feature`
-- Mantenha as alterações pequenas e escreva mensagens de commit descritivas
+- Ao autenticar (via `authService`), o `useFirebaseStorage` pode sincronizar coleções e ativar realtime updates.
+- Configurações de metas do utilizador são sincronizadas em `userConfig` quando o utilizador está autenticado.
+- Em caso de falta de conexão ou modo anônimo, o app opera apenas com cache local (`AsyncStorage`) e sincroniza quando possível.
 
-Para contribuir:
+Arquivos relevantes: `services/firebaseSync.ts`, `hooks/useFirebaseStorage.ts`, `services/authService.ts`.
 
-1. Fork o projeto
-2. Crie uma branch
-3. Abra um Pull Request descrevendo a mudança e os passos para testar
+## Fluxos Principais e Onde Procurar Código
 
-Testes locais e verificação rápida:
+- Home / Dashboard: `app/(tabs)/index.tsx`
+- Registar atividade esportiva: `app/logEsporte.tsx`
+- Fichas de treino: `app/fichas/[id].tsx`, `app/musculacao.tsx`, `app/gerir-fichas.tsx`
+- Criar/editar ficha: `app/ficha-modal.tsx`, `app/editar-ficha/[id].tsx`
+- Perfil e cálculos: `app/perfil.tsx`, `app/perfil-modal.tsx`
+- Seleção de exercícios avançada: `components/ExerciseSelectorEnhanced.tsx` e `components/ExerciseSelector*.tsx`
+
+## Debugging e Resolução de Problemas Comuns
+
+- Toasts não aparecem
+  - Verifique se `<Toast />` está renderizado em `app/_layout.tsx` (provider global).
+  - Ao navegar imediatamente após exibir um toast, introduza um pequeno delay antes de `router.back()` para garantir visibilidade.
+
+- Calorias aparecem como 0
+  - Confirme que `userProfile.weight` está salvo e que `MET_DATA` contém a modalidade desejada.
+
+- Entradas no dia errado (fuso horário)
+  - Evite `toISOString()` para registos diários; use uma função que retorne `YYYY-MM-DD` a partir da data local.
+
+- Notificações disparam imediatamente
+  - Em Expo Go o agendamento pode comportar-se diferente; teste em dispositivo físico/Dev Client ou build standalone.
+
+## Testes e Qualidade
+
+- Execução de lint e checagem TypeScript:
 
 ```bash
-# Instalar dependências
-npm install
-
-# Lint
 npm run lint
-
-# Rodar app
-npm run start
-```
-
-Verificação TypeScript recomendada:
-
-```bash
 npm run tsc -- --noEmit
 ```
 
----
+- Testes manuais principais:
+  - Criar/editar uma ficha e verificar persistência
+  - Contabilizar um treino e verificar que o registo é salvo em `workoutHistory`
+  - Registar atividade desportiva e validar cálculo de calorias
+  - Sincronizar com Firebase (quando autenticado) e validar presença de dados na coleção correspondente
 
-## Roadmap & melhorias futuras
+## Contribuindo
 
-- Sincronização na nuvem (Firebase / Sync service)
-- Autenticação multi-usuário
+- Fork e branch por feature: `git checkout -b feat/nome-da-feature`
+- Siga convenções de commit e mantenha PRs pequenos e documentados
+- Abra issues para bugs e features antes de começar a trabalhar
+
+## Roadmap & Melhorias Futuras
+
+- Autenticação multi-usuário (melhorar experiência de login e contas)
 - Export / Import de dados (JSON / CSV)
-- Melhoria de UX no registo de refeições (interpretação de porções mais avançada)
-- Centralizar utilitários de data em `utils/date.ts` para garantir consistência
+- Melhorias de UX no registo de refeições (interpretação de porções)
+- Centralizar funções de data em `utils/date.ts`
+- Mais testes automatizados (unit e integração)
+
+## Licença
+
+Incluir aqui a licença do projeto (ex.: MIT) se aplicável.
 
 ---
 
-## 🚀 Funcionalidades Recentes (Novembro 2025)
+Se quiser, eu posso também gerar um `CHANGELOG.md` separado, limpar logs de debug temporários adicionados ao código, e adicionar testes unitários para o utilitário `utils/workoutUtils.ts`.
 
-### Sistema Avançado de Seleção de Exercícios
-- **Banco de dados interno completo**: 74+ exercícios organizados em 11 grupos musculares
-- **Interface otimizada para mobile**: Chips de filtro maiores e mais legíveis para melhor usabilidade
-- **Sistema de favoritos**: Marque exercícios preferidos com estrela e filtre rapidamente
-- **Preview inteligente**: Toque longo em qualquer exercício para ver detalhes e vídeo demonstrativo
-- **Animações fluidas**: Efeitos de bounce na seleção e transições suaves
-- **Contador em tempo real**: Badge no header mostra quantos exercícios foram selecionados
-- **Busca inteligente**: Encontre exercícios rapidamente por nome
-- **Carregamento otimizado**: Estados de loading e feedback visual aprimorado
+## 🔁 Atualizações recentes (06 de Novembro de 2025)
 
-### Melhorias Técnicas
-- **Assets locais**: Vídeos demonstrativos integrados com `require()` para melhor performance
-- **TypeScript aprimorado**: Tipagem mais robusta para exercícios e componentes
-- **Arquitetura componentizada**: `ExerciseSelectorEnhanced` reutilizável em criação e edição de fichas
-- **Performance otimizada**: useMemo e useCallback para renderização eficiente
+Estas notas documentam mudanças e adições implementadas desde a última actualização.
 
-### Compatibilidade de Vídeos
-- **Formatos suportados**: GIF e WebP para demonstrações visuais
-- **Carregamento inteligente**: Fallback para ícones quando vídeo não disponível
-- **Otimização mobile**: Compressão adequada para dispositivos móveis
+- Sincronização de configurações do utilizador com Firebase
+  - `firebaseSyncService` foi expandido para incluir sincronização de configurações de utilizador (chave `userConfig`).
+  - Tela de configuração (`app/configurar-home.tsx`) agora carrega do Firebase primeiro (quando autenticado), faz fallback para `AsyncStorage` e salva localmente como cache.
+  - A sincronização é feita de forma resiliente: salva localmente primeiro e tenta enviar para a nuvem quando possível.
+  - Arquivos relevantes: `services/firebaseSync.ts`, `app/configurar-home.tsx`, `app/(tabs)/index.tsx` (load/save userConfig).
+
+- Toasters e navegação após registo de treino/atividade
+  - Melhorado o comportamento ao contabilizar treinos e registar esportes: o `Toast.show()` é exibido e a navegação `router.back()` foi atrasada levemente para garantir visibilidade do toast.
+  - Ajustes nas opções do toast para maior confiabilidade: `visibilityTime` e `topOffset` foram configurados quando necessário.
+  - Arquivos relevantes: `app/fichas/[id].tsx`, `app/logEsporte.tsx`, `app/_layout.tsx` (provider já presente).
+
+- Ordem estável e previsível das fichas de treino
+  - Problema: `Object.values()`/`Object.keys()` não garantiam ordem consistente das fichas entre cargas/sincronizações.
+  - Solução: adicionada utilidade `utils/workoutUtils.ts` com funções:
+    - `sortWorkoutsByName()` — retorna workouts ordenados por nome
+    - `getSortedWorkoutIds()` — IDs ordenados
+    - `getNextWorkoutId()` — próximo workout ordenado
+  - As telas que listam ou usam a ordem das fichas passaram a usar estas funções para garantir consistência (Home, Musculação, Gestão de Fichas, Gestão de Dados, cálculo do próximo treino).
+  - Arquivos relevantes: `utils/workoutUtils.ts`, `app/musculacao.tsx`, `app/gerir-fichas.tsx`, `app/gestao-dados.tsx`, `app/fichas/[id].tsx`.
+
+- Ajustes e melhorias menores
+  - Logs de debug adicionados temporariamente ao mostrar toasts para auxiliar verificação (console.log).
+  - Mesclagem de configurações existentes ao salvar (`config` é mesclado com `existingConfig` para evitar sobrescrita de outros campos).
+  - Pequenas melhorias de UX e mensagens de feedback (toasts informativos, haptics ao salvar).
+
+## 📁 Lista rápida de ficheiros modificados/novos nesta ronda
+
+- services/firebaseSync.ts — adicionadas funções para salvar/carregar/sincronizar `userConfig`.
+- app/configurar-home.tsx — agora usa Firebase quando disponível; merge/salvamento local + nuvem.
+- app/(tabs)/index.tsx — load/save `userConfig` atualizado para priorizar Firebase e cache local.
+- app/logEsporte.tsx — toast + delay antes de `router.back()` e configurações do toast.
+- app/fichas/[id].tsx — toast + delay antes de `router.back()`; calculo do próximo treino usando utilitário ordenado.
+- app/gestao-dados.tsx — usa utilitário ordenado para listar fichas no modal de adicionar atividade.
+- app/musculacao.tsx — lista de fichas agora ordenada por nome (usa `utils/workoutUtils.ts`).
+- app/gerir-fichas.tsx — lista ordenada por nome para consistência.
+- utils/workoutUtils.ts — novo arquivo utilitário para ordenação e navegação entre fichas.
+
+## ✅ Como testar rapidamente
+
+1. Iniciar o app em desenvolvimento:
+
+```bash
+npm install
+npm run start
+```
+
+2. Testar fluxo de configuração de metas:
+   - Abrir `Configurar Home`, alterar metas e salvar.
+   - Se autenticado, verifique console e Firestore (se disponível) para ver o documento `userConfig` salvo; caso contrário verifique `AsyncStorage`.
+
+3. Testar contabilização de treino/esporte:
+   - Contabilizar um treino em `Fichas` ou registar uma atividade em `Registar Atividade`.
+   - Verificar toast aparece e, após ~2s, a tela volta.
+
+4. Verificar ordem de fichas:
+   - Vá para `Fichas` e `Gerir Fichas` — observe a ordem estável (alfabética por nome).
 
 ---
-
-## Notas do desenvolvedor (mudanças recentes importantes)
-
-### Sistema de Exercícios (Novembro 2025)
-- **ExerciseSelectorEnhanced**: Componente principal para seleção de exercícios com funcionalidades avançadas
-  - Integrado em `ficha-modal.tsx` (criação) e `editar-ficha/[id].tsx` (edição)
-  - Sistema de favoritos persistente no estado local
-  - Animações implementadas com Animated API do React Native
-  - Filtros otimizados por grupo muscular + busca + favoritos
-- **exercisesData.ts**: Base de dados estruturada com 74+ exercícios
-  - Formato: `{ id, name, muscle, videoUrl: require(...) }`
-  - Organizados por 11 grupos musculares em português
-  - Assets de vídeo carregados com `require()` para melhor performance no React Native
-- **Tipagem TypeScript**: Interface `Exercise` e `ExerciseGroup` para type safety
-
-### Otimizações de UX
-- **Filter chips responsivos**: Tamanhos otimizados para touch targets móveis
-- **Loading states**: Feedback visual durante carregamento de exercícios
-- **Bounce animations**: Micro-interações para seleção de exercícios
-- **Modal preview**: Visualização rápida com long press gesture
-
-- Suplementos
-  - `useSupplements` normaliza e inclui `showOnHome?: boolean` para controlar se um suplemento aparece no Home.
-  - `app/gerir-suplementos.tsx` foi estendido com controles para marcar se tomou (`daily_check`) ou ajustar contadores (`counter`) e persiste em `supplements_history`.
-
-- Notificações
-  - O serviço de notificações (`lib/notificationService.ts`) usa `scheduleNotificationAsync` e persiste IDs para permitir cancelamento e re-agendamento.
-  - Se as notificações estiverem a disparar imediatamente ao activar um lembrete, verifique agendamentos antigos e o ambiente (Expo Go vs Dev Client / standalone).
 

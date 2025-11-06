@@ -1,9 +1,9 @@
 // context/SportsProvider.tsx
 
-import React, { createContext, useState, useEffect, useCallback, useContext, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import React, { createContext, ReactNode, useContext } from 'react';
 import { IconInfo } from '../constants/iconList';
+import { useFirebaseStorage } from '../hooks/useFirebaseStorage';
 
 export interface Sport {
     id: string;
@@ -15,55 +15,37 @@ export interface Sport {
 interface SportsContextType {
     sports: Sport[];
     isLoading: boolean;
+    isSyncing: boolean;
+    lastSyncTime: Date | null;
+    isAuthenticated: boolean;
     addSport: (name: string, icon: IconInfo) => Promise<void>;
     deleteSport: (sportId: string) => Promise<void>;
+    forceSync: () => Promise<void>;
 }
 
 const SPORTS_STORAGE_KEY = 'user_sports_list';
 
 const INITIAL_SPORTS_DATA: Sport[] = [
     { id: 'academia', name: 'Academia', icon: 'barbell-outline', library: 'Ionicons' },
-    { id: 'volei_quadra', name: 'Vôlei de Quadra', icon: 'volleyball', library: 'MaterialCommunityIcons' },
-    { id: 'volei_praia', name: 'Vôlei de Praia', icon: 'sunny-outline', library: 'Ionicons' },
-    { id: 'futebol', name: 'Futebol Society', icon: 'football-outline', library: 'Ionicons' },
-    { id: 'boxe', name: 'Boxe', icon: 'boxing-glove', library: 'MaterialCommunityIcons' },
 ];
 
 const SportsContext = createContext<SportsContextType | undefined>(undefined);
 
 export function SportsProvider({ children }: { children: ReactNode }) {
-    const [sports, setSports] = useState<Sport[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        const loadSports = async () => {
-            setIsLoading(true);
-            try {
-                const storedSports = await AsyncStorage.getItem(SPORTS_STORAGE_KEY);
-                if (storedSports) {
-                    setSports(JSON.parse(storedSports));
-                } else {
-                    setSports(INITIAL_SPORTS_DATA);
-                    await AsyncStorage.setItem(SPORTS_STORAGE_KEY, JSON.stringify(INITIAL_SPORTS_DATA));
-                }
-            } catch (e) {
-                console.error("Falha ao carregar os desportos.", e);
-                setSports(INITIAL_SPORTS_DATA);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        loadSports();
-    }, []);
-
-    const saveSports = async (newSports: Sport[]) => {
-        try {
-            await AsyncStorage.setItem(SPORTS_STORAGE_KEY, JSON.stringify(newSports));
-            setSports(newSports); // Atualiza o estado global
-        } catch (e) {
-            console.error("Falha ao guardar os desportos.", e);
-        }
-    };
+    const {
+        data: sports,
+        isLoading,
+        isSyncing,
+        lastSyncTime,
+        isAuthenticated,
+        saveData,
+        forcSync: forceSync
+    } = useFirebaseStorage<Sport[]>(
+        SPORTS_STORAGE_KEY,
+        'sports',
+        INITIAL_SPORTS_DATA,
+        { enableRealtime: true, syncOnMount: true }
+    );
 
     const addSport = async (name: string, icon: IconInfo) => {
         if (!name.trim()) return;
@@ -74,7 +56,7 @@ export function SportsProvider({ children }: { children: ReactNode }) {
             library: icon.library,
         };
         const updatedSports = [...sports, newSport];
-        await saveSports(updatedSports);
+        await saveData(updatedSports);
     };
 
     const deleteSport = async (sportId: string) => {
@@ -83,11 +65,20 @@ export function SportsProvider({ children }: { children: ReactNode }) {
             return;
         }
         const updatedSports = sports.filter(sport => sport.id !== sportId);
-        await saveSports(updatedSports);
+        await saveData(updatedSports);
     };
 
     return (
-        <SportsContext.Provider value={{ sports, isLoading, addSport, deleteSport }}>
+        <SportsContext.Provider value={{ 
+            sports, 
+            isLoading, 
+            isSyncing, 
+            lastSyncTime, 
+            isAuthenticated, 
+            addSport, 
+            deleteSport, 
+            forceSync 
+        }}>
             {children}
         </SportsContext.Provider>
     );

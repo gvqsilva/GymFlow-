@@ -1,11 +1,12 @@
 // app/gerir-fichas.tsx
 
-import React from 'react';
-import { View, StyleSheet, FlatList, Pressable, Text, ActivityIndicator, Alert } from 'react-native';
-import { Stack, useFocusEffect, useRouter } from 'expo-router';
-import { useWorkouts } from '../hooks/useWorkouts';
-import { Workout } from '../constants/workoutData';
 import { Ionicons } from '@expo/vector-icons';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import React from 'react';
+import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Workout } from '../constants/workoutData';
+import { useWorkouts } from '../hooks/useWorkouts';
+import { sortWorkoutsByName } from '../utils/workoutUtils';
 
 const themeColor = '#5a4fcf';
 
@@ -34,7 +35,8 @@ export default function ManageWorkoutsScreen() {
         return <ActivityIndicator size="large" color={themeColor} style={{ flex: 1 }} />;
     }
 
-    const workoutsList = Object.values(workouts);
+    // Ordenar fichas por nome para manter ordem consistente
+    const workoutsList = sortWorkoutsByName(workouts);
 
     return (
         <View style={styles.container}>

@@ -1,51 +1,31 @@
 // hooks/useWorkouts.ts
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useCallback, useEffect, useState } from 'react';
 import { Exercise, WORKOUT_DATA, Workout } from '../constants/workoutData';
+import { useFirebaseStorage } from './useFirebaseStorage';
 
 const WORKOUTS_STORAGE_KEY = 'user_workouts_storage';
 
 export function useWorkouts() {
-    const [workouts, setWorkouts] = useState<Record<string, Workout>>({});
-    const [isLoading, setIsLoading] = useState(true);
-
-    const loadWorkouts = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            const storedWorkouts = await AsyncStorage.getItem(WORKOUTS_STORAGE_KEY);
-            if (storedWorkouts) {
-                setWorkouts(JSON.parse(storedWorkouts));
-            } else {
-                setWorkouts(WORKOUT_DATA);
-                await AsyncStorage.setItem(WORKOUTS_STORAGE_KEY, JSON.stringify(WORKOUT_DATA));
-            }
-        } catch (e) {
-            console.error("Falha ao carregar os treinos.", e);
-            setWorkouts(WORKOUT_DATA);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        loadWorkouts();
-    }, [loadWorkouts]);
-
-    const saveWorkouts = async (newWorkouts: Record<string, Workout>) => {
-        try {
-            await AsyncStorage.setItem(WORKOUTS_STORAGE_KEY, JSON.stringify(newWorkouts));
-            setWorkouts(newWorkouts);
-        } catch (e) {
-            console.error("Falha ao guardar os treinos.", e);
-        }
-    };
+    const {
+        data: workouts,
+        isLoading,
+        isSyncing,
+        lastSyncTime,
+        isAuthenticated,
+        saveData,
+        forcSync: forceSync
+    } = useFirebaseStorage<Record<string, Workout>>(
+        WORKOUTS_STORAGE_KEY,
+        'workouts',
+        WORKOUT_DATA,
+        { enableRealtime: true, syncOnMount: true }
+    );
 
     const addExercise = async (workoutId: string, newExercise: Exercise) => {
         const newWorkouts = { ...workouts };
         if (newWorkouts[workoutId]) {
             newWorkouts[workoutId].exercises.push(newExercise);
-            await saveWorkouts(newWorkouts);
+            await saveData(newWorkouts);
         }
     };
 
@@ -55,7 +35,7 @@ export function useWorkouts() {
             const index = newWorkouts[workoutId].exercises.findIndex(ex => ex.id === updatedExercise.id);
             if (index > -1) {
                 newWorkouts[workoutId].exercises[index] = updatedExercise;
-                await saveWorkouts(newWorkouts);
+                await saveData(newWorkouts);
             }
         }
     };
@@ -64,7 +44,7 @@ export function useWorkouts() {
         const newWorkouts = { ...workouts };
         if (newWorkouts[workoutId]) {
             newWorkouts[workoutId].exercises = newWorkouts[workoutId].exercises.filter(ex => ex.id !== exerciseId);
-            await saveWorkouts(newWorkouts);
+            await saveData(newWorkouts);
         }
     };
     
@@ -72,7 +52,7 @@ export function useWorkouts() {
         const newWorkouts = { ...workouts };
         if (newWorkouts[workoutId]) {
             newWorkouts[workoutId].exercises = reorderedExercises;
-            await saveWorkouts(newWorkouts);
+            await saveData(newWorkouts);
         }
     };
 
@@ -87,16 +67,30 @@ export function useWorkouts() {
             exercises: exercises || [],
         };
         newWorkouts[newWorkoutId] = newWorkout;
-        await saveWorkouts(newWorkouts);
+        await saveData(newWorkouts);
     };
 
     // NOVA FUNÇÃO para apagar uma ficha de treino
     const deleteWorkout = async (workoutId: string) => {
         const newWorkouts = { ...workouts };
         delete newWorkouts[workoutId];
-        await saveWorkouts(newWorkouts);
+        await saveData(newWorkouts);
     };
 
-    return { workouts, isLoading, refreshWorkouts: loadWorkouts, addExercise, updateExercise, deleteExercise, reorderExercises, addWorkout, deleteWorkout };
+    return { 
+        workouts, 
+        isLoading, 
+        isSyncing,
+        lastSyncTime,
+        isAuthenticated,
+        refreshWorkouts: forceSync, 
+        addExercise, 
+        updateExercise, 
+        deleteExercise, 
+        reorderExercises, 
+        addWorkout, 
+        deleteWorkout,
+        forceSync 
+    };
 }
 
