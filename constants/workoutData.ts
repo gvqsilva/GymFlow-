@@ -21,7 +21,7 @@ export const WORKOUT_DATA: Record<string, Workout> = {
   A: {
     id: 'A',
     name: 'Treino A',
-    groups: 'Peito/Ombro/Tríceps ',
+    groups: 'Full Body ',
     exercises: [
       {
         id: 'ex_0202',
@@ -30,22 +30,6 @@ export const WORKOUT_DATA: Record<string, Workout> = {
         series: 4,
         reps: '12/10/10/8',
         obs: 'Banco 45°',
-      },
-      {
-        id: 'ex_0204',
-        name: 'Supino com Halteres',
-        muscle: 'Peitoral',
-        series: 3,
-        reps: '12/10/8',
-        obs: 'Banco 30°',
-      },
-      {
-        id: 'ex_0212',
-        name: 'Supino Articulado Declinado',
-        muscle: 'Peitoral',
-        series: 4,
-        reps: '12/10/10/8',
-        obs: '',
       },
       {
         id: 'ex_0213',
@@ -72,43 +56,12 @@ export const WORKOUT_DATA: Record<string, Workout> = {
         obs: '',
       },
       {
-        id: 'ex_0505',
-        name: 'Tríceps Testa',
-        muscle: 'Tríceps',
-        series: 3,
-        reps: '12/10/8',
-        obs: 'Barra W',
-      },
-      {
         id: 'ex_0503',
         name: 'Tríceps Francês Halter',
         muscle: 'Tríceps',
         series: 3,
         reps: '12/10/8',
         obs: '',
-      },
-    ],
-  },
-  B: {
-    id: 'B',
-    name: 'Treino B',
-    groups: 'Costas/Bíceps ',
-    exercises: [
-       {
-        id: 'ex_0301',
-        name: 'Puxada Frontal',
-        muscle: 'Dorsal',
-        series: 4,
-        reps: '12/10/8/6',
-        obs: 'Mapfit 1',
-      },
-      {
-        id: 'ex_0304',
-        name: 'Remada Unilateral com Halter',
-        muscle: 'Dorsal',
-        series: 4,
-        reps: '12/10/8/6',
-        obs: '"Serrote"',
       },
       {
         id: 'ex_0309',
@@ -119,12 +72,12 @@ export const WORKOUT_DATA: Record<string, Workout> = {
         obs: '',
       },
       {
-        id: 'ex_0316',
-        name: 'Extensão Lombar 45°',
-        muscle: 'Lombar',
-        series: 3,
-        reps: '12/10/8',
-        obs: '',
+        id: 'ex_0301',
+        name: 'Puxada Frontal',
+        muscle: 'Dorsal',
+        series: 4,
+        reps: '12/10/8/6',
+        obs: 'Mapfit 1',
       },
       {
         id: 'ex_0313',
@@ -135,14 +88,6 @@ export const WORKOUT_DATA: Record<string, Workout> = {
         obs: '',
       },
       {
-        id: 'ex_0403',
-        name: 'Rosca Alternada com Halteres',
-        muscle: 'Bíceps',
-        series: 3,
-        reps: '12/10/8',
-        obs: 'Banco 45°',
-      },
-      {
         id: 'ex_0404',
         name: 'Rosca Martelo',
         muscle: 'Bíceps',
@@ -150,13 +95,6 @@ export const WORKOUT_DATA: Record<string, Workout> = {
         reps: '12/10/8',
         obs: 'Cross Corda',
       },
-    ],
-  },
-  C: {
-    id: 'C',
-    name: 'Treino C',
-    groups: 'Perna completo ',
-    exercises: [
       {
         id: 'ex_0802',
         name: 'Gemeos em Pé Maquina',
@@ -164,14 +102,6 @@ export const WORKOUT_DATA: Record<string, Workout> = {
         series: 4,
         reps: '12/10/10/8',
         obs: 'Maquina',
-      },
-      {
-        id: 'ex_0104',
-        name: 'Agachamento Smith',
-        muscle: 'Quadríceps',
-        series: 4,
-        reps: '12/10/10/8',
-        obs: '',
       },
       {
         id: 'ex_0106',
@@ -187,14 +117,6 @@ export const WORKOUT_DATA: Record<string, Workout> = {
         muscle: 'Quadríceps',
         series: 4,
         reps: '11/10/8/6',
-        obs: '',
-      },
-      {
-        id: 'ex_0114',
-        name: 'Mesa Flexora',
-        muscle: 'Posterior de Coxa',
-        series: 3,
-        reps: '12/10/8',
         obs: '',
       },
       {
@@ -221,6 +143,6 @@ export const WORKOUT_DATA: Record<string, Workout> = {
         reps: '12/10/10/8',
         obs: '',
       },
-    ],
-  },
+    ]
+  }
 };
