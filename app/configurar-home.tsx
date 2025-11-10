@@ -1,252 +1,91 @@
 // app/configurar-home.tsx
 
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import Toast from 'react-native-toast-message';
-import { authService } from '../services/authService';
-import { firebaseSyncService } from '../services/firebaseSync';
+import { DEFAULT_USER_GOALS, DEFAULT_VISIBLE_METRICS, UserGoals, useUserConfig, VisibleMetrics } from '../hooks/useUserConfig';
 
 const themeColor = '#5a4fcf';
 
-interface UserGoals {
-    dailyCalories: number;
-    weeklyWorkouts: number;
-    weeklyActivities: number;
-    dailyTime: number;
-}
-
-interface VisibleMetrics {
-    calories: boolean;
-    activities: boolean;
-    time: boolean;
-}
-
-const defaultGoals: UserGoals = {
-    dailyCalories: 600,
-    weeklyWorkouts: 4,
-    weeklyActivities: 8,
-    dailyTime: 120,
-};
-
-const defaultVisibility: VisibleMetrics = {
-    calories: true,
-    activities: true,
-    time: true,
-};
-
 export default function ConfigurarHomeScreen() {
     const router = useRouter();
-    const [goals, setGoals] = useState<UserGoals>(defaultGoals);
-    const [visibleMetrics, setVisibleMetrics] = useState<VisibleMetrics>(defaultVisibility);
+    const {
+        userConfig,
+        updateHomePreferences,
+        resetHomePreferences,
+        isLoading: isConfigLoading,
+    } = useUserConfig();
+
+    const [goals, setGoals] = useState<UserGoals>({ ...DEFAULT_USER_GOALS });
+    const [visibleMetrics, setVisibleMetrics] = useState<VisibleMetrics>({ ...DEFAULT_VISIBLE_METRICS });
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        loadSettings();
-    }, []);
+        setIsLoading(isConfigLoading);
+    }, [isConfigLoading]);
 
-    const loadSettings = async () => {
-        try {
-            console.log('📖 Carregando configurações...');
-            
-            // Se está autenticado e pode sincronizar com Firebase
-            if (authService.shouldSyncWithFirebase() && !authService.isInOfflineMode()) {
-                console.log('🔥 Carregando configurações do Firebase...');
-                
-                // Tentar carregar do Firebase primeiro
-                const firebaseConfig = await firebaseSyncService.loadUserConfig();
-                if (firebaseConfig) {
-                    console.log('🔥 Configurações do Firebase:', firebaseConfig);
-                    
-                    if (firebaseConfig.userGoals) {
-                        setGoals({ ...defaultGoals, ...firebaseConfig.userGoals });
-                        console.log('🎯 Metas carregadas do Firebase:', firebaseConfig.userGoals);
-                    }
-                    if (firebaseConfig.visibleMetrics) {
-                        setVisibleMetrics({ ...defaultVisibility, ...firebaseConfig.visibleMetrics });
-                        console.log('👁️ Visibilidade carregada do Firebase:', firebaseConfig.visibleMetrics);
-                    }
-                    
-                    // Salvar também localmente para cache
-                    await AsyncStorage.setItem('userConfig', JSON.stringify(firebaseConfig));
-                    return;
-                }
-                console.log('🔥 Nenhuma configuração encontrada no Firebase, tentando local...');
-            }
-            
-            // Fallback para AsyncStorage local
-            const savedConfig = await AsyncStorage.getItem('userConfig');
-            console.log('� Carregando configurações locais:', savedConfig);
-            
-            if (savedConfig) {
-                const config = JSON.parse(savedConfig);
-                console.log('� Config local parseado:', config);
-                
-                if (config.userGoals) {
-                    setGoals({ ...defaultGoals, ...config.userGoals });
-                    console.log('🎯 Metas carregadas localmente:', config.userGoals);
-                }
-                if (config.visibleMetrics) {
-                    setVisibleMetrics({ ...defaultVisibility, ...config.visibleMetrics });
-                    console.log('👁️ Visibilidade carregada localmente:', config.visibleMetrics);
-                }
-            } else {
-                console.log('� Nenhuma configuração local encontrada, usando padrões');
-            }
-        } catch (error) {
-            console.warn('❌ Erro ao carregar configurações:', error);
-            Toast.show({
-                type: 'error',
-                text1: 'Erro ao carregar configurações',
-                text2: 'Usando configurações padrão',
-            });
-        } finally {
-            setIsLoading(false);
+    useEffect(() => {
+        if (isConfigLoading) {
+            return;
         }
-    };
 
-    const saveSettings = async () => {
-        try {
-            console.log('💾 Salvando configurações...');
-            
-            // Primeiro carregar configuração existente para não sobrescrever outros dados
-            let existingConfig = {};
-            
-            // Se está autenticado e pode sincronizar com Firebase
-            if (authService.shouldSyncWithFirebase() && !authService.isInOfflineMode()) {
-                console.log('🔥 Carregando configuração existente do Firebase...');
-                try {
-                    const firebaseConfig = await firebaseSyncService.loadUserConfig();
-                    if (firebaseConfig) {
-                        existingConfig = firebaseConfig;
-                        console.log('🔥 Configuração existente do Firebase:', existingConfig);
-                    }
-                } catch (firebaseError) {
-                    console.warn('🔥 Erro ao carregar do Firebase, usando local:', firebaseError);
-                }
-            }
-            
-            // Fallback para AsyncStorage local se não conseguiu do Firebase
-            if (Object.keys(existingConfig).length === 0) {
-                const existingConfigJSON = await AsyncStorage.getItem('userConfig');
-                existingConfig = existingConfigJSON ? JSON.parse(existingConfigJSON) : {};
-                console.log('📱 Configuração existente local:', existingConfig);
-            }
-            
-            // Mesclar com as novas configurações
-            const config = {
-                ...existingConfig,
-                userGoals: goals,
-                visibleMetrics: visibleMetrics,
-                lastModified: new Date().toISOString(),
-                version: '1.0'
-            };
-            
-            console.log('💾 Config final a ser salvo:', config);
-            
-            // Salvar localmente primeiro (para cache)
-            await AsyncStorage.setItem('userConfig', JSON.stringify(config));
-            console.log('📱 Configurações salvas localmente');
-            
-            // Se está autenticado e pode sincronizar com Firebase
-            if (authService.shouldSyncWithFirebase() && !authService.isInOfflineMode()) {
-                console.log('🔥 Sincronizando com Firebase...');
-                
-                try {
-                    await firebaseSyncService.saveUserConfig(config);
-                    console.log('🔥 Configurações sincronizadas com Firebase com sucesso');
-                    
-                    Toast.show({
-                        type: 'success',
-                        text1: 'Configurações salvas',
-                        text2: 'Sincronizadas com a nuvem ☁️',
-                    });
-                } catch (firebaseError) {
-                    console.warn('🔥 Erro ao sincronizar com Firebase:', firebaseError);
-                    Toast.show({
-                        type: 'info',
-                        text1: 'Configurações salvas',
-                        text2: 'Apenas localmente (sem conexão)',
-                    });
-                }
-            } else {
-                console.log('📱 Salvando apenas localmente (offline ou não autenticado)');
-                Toast.show({
-                    type: 'success',
-                    text1: 'Configurações salvas',
-                    text2: 'Volte à home para ver as alterações',
-                });
-            }
-            
-        } catch (error) {
-            console.error('❌ Erro ao salvar configurações:', error);
-            Toast.show({
-                type: 'error',
-                text1: 'Erro ao salvar',
-                text2: 'Tente novamente',
-            });
-        }
-    };
+        const mergedGoals = {
+            ...DEFAULT_USER_GOALS,
+            ...(userConfig?.userGoals || {}),
+        };
+
+        const mergedVisibility = {
+            ...DEFAULT_VISIBLE_METRICS,
+            ...(userConfig?.visibleMetrics || {}),
+        };
+
+        setGoals(mergedGoals);
+        setVisibleMetrics(mergedVisibility);
+        setIsLoading(false);
+    }, [isConfigLoading, userConfig]);
 
     const updateGoal = async (key: keyof UserGoals, increment: boolean) => {
+        const previousGoals = { ...goals };
         const newGoals = { ...goals };
         const step = key === 'dailyCalories' ? 50 : key === 'dailyTime' ? 10 : 1;
         const min = key === 'dailyCalories' ? 50 : key === 'dailyTime' ? 10 : 1;
         const max = key === 'dailyCalories' ? 2000 : key === 'dailyTime' ? 300 : 20;
 
-        if (increment) {
-            newGoals[key] = Math.min(newGoals[key] + step, max);
-        } else {
-            newGoals[key] = Math.max(newGoals[key] - step, min);
-        }
-        
+        newGoals[key] = increment
+            ? Math.min(newGoals[key] + step, max)
+            : Math.max(newGoals[key] - step, min);
+
         console.log(`🎯 Alterando ${key} para ${newGoals[key]}`);
-        
+
         setGoals(newGoals);
-        
-        // Salvar imediatamente
+
         try {
-            const existingConfigJSON = await AsyncStorage.getItem('userConfig');
-            const existingConfig = existingConfigJSON ? JSON.parse(existingConfigJSON) : {};
-            
-            const config = {
-                ...existingConfig,
-                userGoals: newGoals, // Usar as novas metas
-                visibleMetrics: visibleMetrics
-            };
-            
-            await AsyncStorage.setItem('userConfig', JSON.stringify(config));
-            console.log('✅ Metas salvas imediatamente:', config.userGoals);
+            await updateHomePreferences({ userGoals: newGoals });
         } catch (error) {
             console.error('❌ Erro ao salvar metas:', error);
+            setGoals(previousGoals);
+            Toast.show({
+                type: 'error',
+                text1: 'Erro ao salvar metas',
+                text2: 'Tente novamente',
+            });
         }
     };
 
     const toggleMetricVisibility = async (metric: keyof VisibleMetrics) => {
+        const previousVisibility = { ...visibleMetrics };
         const newValue = !visibleMetrics[metric];
         const newVisibility = { ...visibleMetrics, [metric]: newValue };
-        
-        console.log(`🔄 Alterando ${metric} de ${visibleMetrics[metric]} para ${newValue}`);
-        console.log('👁️ Nova visibilidade:', newVisibility);
-        
+
+        console.log(`� Alterando ${metric} de ${visibleMetrics[metric]} para ${newValue}`);
+        console.log('�️ Nova visibilidade:', newVisibility);
+
         setVisibleMetrics(newVisibility);
-        
-        // Salvar imediatamente
+
         try {
-            const existingConfigJSON = await AsyncStorage.getItem('userConfig');
-            const existingConfig = existingConfigJSON ? JSON.parse(existingConfigJSON) : {};
-            
-            const config = {
-                ...existingConfig,
-                userGoals: goals,
-                visibleMetrics: newVisibility // Usar a nova visibilidade
-            };
-            
-            await AsyncStorage.setItem('userConfig', JSON.stringify(config));
-            console.log('✅ Visibilidade salva imediatamente:', config.visibleMetrics);
-            
+            await updateHomePreferences({ visibleMetrics: newVisibility });
             Toast.show({
                 type: 'success',
                 text1: `Card ${metric} ${newValue ? 'ativado' : 'desativado'}`,
@@ -254,6 +93,12 @@ export default function ConfigurarHomeScreen() {
             });
         } catch (error) {
             console.error('❌ Erro ao salvar visibilidade:', error);
+            setVisibleMetrics(previousVisibility);
+            Toast.show({
+                type: 'error',
+                text1: 'Erro ao atualizar visibilidade',
+                text2: 'Tente novamente',
+            });
         }
     };
 
@@ -266,10 +111,32 @@ export default function ConfigurarHomeScreen() {
                 {
                     text: 'Restaurar',
                     style: 'destructive',
-                    onPress: () => {
+                    onPress: async () => {
+                        const previousGoals = { ...goals };
+                        const previousVisibility = { ...visibleMetrics };
+                        const defaultGoals = { ...DEFAULT_USER_GOALS };
+                        const defaultVisibility = { ...DEFAULT_VISIBLE_METRICS };
+
                         setGoals(defaultGoals);
                         setVisibleMetrics(defaultVisibility);
-                        saveSettings();
+
+                        try {
+                            await resetHomePreferences();
+                            Toast.show({
+                                type: 'success',
+                                text1: 'Configurações restauradas',
+                                text2: 'Padrões aplicados à Home',
+                            });
+                        } catch (error) {
+                            console.error('❌ Erro ao restaurar configurações:', error);
+                            setGoals(previousGoals);
+                            setVisibleMetrics(previousVisibility);
+                            Toast.show({
+                                type: 'error',
+                                text1: 'Erro ao restaurar',
+                                text2: 'Tente novamente',
+                            });
+                        }
                     },
                 },
             ]

@@ -4,8 +4,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, FlatList, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Toast from 'react-native-toast-message'; // Importação do Toast
+import { getExerciseGif } from '../../constants/exercisesData';
 import { MET_DATA } from '../../constants/metData';
 import { useWorkouts } from '../../hooks/useWorkouts';
 import { firebaseSyncService } from '../../services/firebaseSync';
@@ -172,7 +173,7 @@ export default function WorkoutDetailScreen() {
         <View style={styles.container}>
             <Stack.Screen options={{ title: title || workout.name }} />
              <View style={styles.header}>
-                <Text style={styles.headerText}>{workout.groups}</Text>
+                <Text style={styles.headerText} numberOfLines={1} ellipsizeMode="tail">{workout.groups}</Text>
             </View>
             
             <FlatList
@@ -181,19 +182,42 @@ export default function WorkoutDetailScreen() {
                 contentContainerStyle={{ paddingHorizontal: 15, paddingTop: 15 }}
                 renderItem={({ item }) => (
                     <View style={styles.card}>
-                        <Link href={{ pathname: '/fichas/exercicio', params: { workoutId: id, exerciseId: item.id } }} asChild>
-                            <Pressable style={styles.mainInfo}>
-                                <Text style={styles.exerciseName}>{item.name} </Text>
-                                <Text style={styles.muscleTag}>{item.muscle} </Text>
-                                {item.obs ? <Text style={styles.obsText}>Obs: {item.obs} </Text> : null}
-                                <View style={styles.seriesRepsContainer}>
-                                    <Text style={styles.seriesRepsText}>Série: {item.series} </Text>
-                                    <Text style={styles.seriesRepsText}>Reps: {item.reps} </Text>
-                                </View>
-                            </Pressable>
-                        </Link>
+                        <View style={styles.cardBody}>
+                            <View style={styles.thumbWrapper}>
+                                {(() => {
+                                    const gif = getExerciseGif(item.id);
+                                    return gif ? (
+                                        <Image source={gif} style={styles.exerciseThumb} resizeMode="cover" />
+                                    ) : (
+                                        <View style={[styles.exerciseThumb, styles.thumbPlaceholder]}>
+                                            <Text style={styles.thumbEmoji}>💪 </Text>
+                                        </View>
+                                    );
+                                })()}
+                            </View>
+                            <Link href={{ pathname: '/fichas/exercicio', params: { workoutId: id, exerciseId: item.id } }} asChild>
+                                <Pressable
+                                    style={({ pressed }) => [styles.infoRow, pressed && styles.pressed]}
+                                    android_ripple={{ color: '#eaeaea' }}
+                                    accessible
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`Ver detalhes de ${item.name}`}
+                                >
+                                    <View style={styles.mainInfo}>
+                                        <Text style={styles.exerciseName}>{item.name} </Text>
+                                        <Text style={styles.muscleLine} numberOfLines={1} ellipsizeMode="tail">{item.muscle}</Text>
+                                        <View style={styles.tagsRow}>
+                                            <Text style={styles.tag}>Séries: {item.series} </Text>
+                                            <Text style={styles.tag}>Reps: {item.reps} </Text>
+                                        </View>
+                                        {item.obs ? <Text style={styles.obsText}>Obs: {item.obs}</Text> : null}
+                                    </View>
+                                    <Text style={styles.chevron}>› </Text>
+                                </Pressable>
+                            </Link>
+                        </View>
                         <View style={styles.prSection}>
-                            <Text style={styles.prLabel}>PR:</Text>
+                            <View style={styles.prBadge}><Text style={styles.prBadgeText}>PR</Text></View>
                             <TextInput
                                 style={styles.input}
                                 placeholder="0"
@@ -201,13 +225,13 @@ export default function WorkoutDetailScreen() {
                                 value={performance[item.id] || ''}
                                 onChangeText={(text) => handleWeightChange(item.id, text)}
                             />
-                            <Text style={styles.unitText}>kg</Text>
+                            <Text style={styles.unitText}>kg </Text>
                         </View>
                     </View>
                 )}
                 ListFooterComponent={
                     <Pressable style={styles.logButton} onPress={handleLogWorkout}>
-                        <Text style={styles.logButtonText}>Contabilizar Treino</Text>
+                        <Text style={styles.logButtonText}>Contabilizar Treino </Text>
                     </Pressable>
                 }
                 ListFooterComponentStyle={{ paddingBottom: 30 }}
@@ -222,15 +246,26 @@ const styles = StyleSheet.create({
     headerText: { fontSize: 16, color: 'gray', fontWeight: '500'},
     logButton: { backgroundColor: themeColor, marginHorizontal: 15, marginTop: 20, padding: 15, borderRadius: 15, alignItems: 'center' },
     logButtonText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
-    card: { backgroundColor: 'white', borderRadius: 15, marginBottom: 15, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2, overflow: 'hidden' },
-    mainInfo: { padding: 20 },
-    exerciseName: { fontSize: 20, fontWeight: 'bold', color: '#333', marginBottom: 5 },
-    muscleTag: { backgroundColor: '#e0e0e0', color: '#555', alignSelf: 'flex-start', paddingVertical: 3, paddingHorizontal: 8, borderRadius: 10, overflow: 'hidden', fontSize: 12 },
-    obsText: { fontSize: 12, color: 'gray', marginTop: 10, fontStyle: 'italic' },
-    seriesRepsContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 15 },
-    seriesRepsText: { fontSize: 14, color: '#555' },
-    prSection: { backgroundColor: '#444', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15, borderTopWidth: 1, borderTopColor: '#555' },
-    prLabel: { fontSize: 18, fontWeight: 'bold', color: 'white' },
-    input: { backgroundColor: '#555', color: 'white', borderRadius: 8, paddingHorizontal: 15, paddingVertical: 8, fontSize: 18, width: 80, textAlign: 'center', marginLeft: 10 },
-    unitText: { fontSize: 16, color: '#ccc', marginLeft: 8 }
+    card: { backgroundColor: 'white', borderRadius: 16, marginBottom: 15, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 3, overflow: 'hidden', borderWidth: 1, borderColor: '#eee' },
+    cardBody: { flexDirection: 'row', padding: 14, gap: 12, alignItems: 'center' },
+    thumbWrapper: { width: 64, height: 64, borderRadius: 12, overflow: 'hidden', backgroundColor: '#f0f0f0' },
+    exerciseThumb: { width: '100%', height: '100%' },
+    thumbPlaceholder: { justifyContent: 'center', alignItems: 'center' },
+    thumbEmoji: { fontSize: 22 },
+    infoRow: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    mainInfo: { flex: 1, paddingRight: 8 },
+    exerciseName: { fontSize: 16, fontWeight: '800', color: '#222', marginBottom: 6 },
+    muscleLine: { fontSize: 13, color: themeColor, fontWeight: '700', marginBottom: 6 },
+    tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    tag: { fontSize: 12, color: '#333', backgroundColor: '#f2f2f2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
+    tagMuted: { backgroundColor: '#eef1ff', color: themeColor },
+    obsText: { fontSize: 12, color: '#777', marginTop: 8, fontStyle: 'italic' },
+    prSection: { backgroundColor: '#fafafa', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#eee' },
+    prLabel: { fontSize: 14, fontWeight: '900', color: '#555' },
+    prBadge: { backgroundColor: '#eef1ff', borderColor: '#dfe3ff', borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
+    prBadgeText: { color: themeColor, fontWeight: '800', fontSize: 12 },
+    input: { backgroundColor: 'white', color: '#111', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 16, width: 80, textAlign: 'center', marginLeft: 10, borderWidth: 1, borderColor: '#ddd' },
+    unitText: { fontSize: 14, color: '#666', marginLeft: 8 },
+    chevron: { fontSize: 20, color: '#bbb', marginLeft: 8 },
+    pressed: { opacity: 0.85 }
 });

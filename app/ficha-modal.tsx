@@ -5,7 +5,8 @@ import React, { useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ExerciseSelector } from '../components/ExerciseSelectorEnhanced';
 import { WorkoutExerciseItem } from '../components/WorkoutExerciseItem';
-import { Exercise } from '../constants/exercisesData';
+import { CatalogExercise } from '../constants/exercisesData';
+import { Exercise } from '../constants/workoutData';
 import { useWorkoutExercises } from '../hooks/useWorkoutExercises';
 import { useWorkouts } from '../hooks/useWorkouts';
 
@@ -27,7 +28,7 @@ export default function FichaModal() {
         getSelectedIds
     } = useWorkoutExercises();
 
-    const handleSelectExercise = (exercise: Exercise) => {
+    const handleSelectExercise = (exercise: CatalogExercise) => {
         addExercise(exercise);
         setShowExerciseSelector(false);
     };
@@ -45,17 +46,23 @@ export default function FichaModal() {
 
         // Criar a ficha com os exercícios selecionados
         // Converter WorkoutExercise para o formato Exercise esperado pelo addWorkout
-        const workoutExercises = exercises.map(exercise => ({
+        const workoutExercises: Exercise[] = exercises.map(exercise => ({
             id: exercise.id,
             name: exercise.name,
             muscle: exercise.muscle,
             series: exercise.series,
             reps: exercise.reps,
             obs: exercise.obs,
-            gifUrl: exercise.videoUrl // Mapeando videoUrl para gifUrl
+            // gifUrl removido - será obtido automaticamente pelo ID
         }));
         
-        await addWorkout(name, groups, workoutExercises);
+        const newWorkout = {
+            name,
+            groups,
+            exercises: workoutExercises,
+        };
+        
+        await addWorkout(newWorkout);
         router.back();
     };
 

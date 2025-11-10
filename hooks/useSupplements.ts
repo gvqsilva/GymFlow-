@@ -23,34 +23,47 @@ const INITIAL_SUPPLEMENTS_DATA: Supplement[] = [
 
 export function useSupplements() {
     const {
-        data: supplements,
+        data: supplements = INITIAL_SUPPLEMENTS_DATA,
         isLoading,
         isSyncing,
         lastSyncTime,
         isAuthenticated,
         saveData,
-        forcSync: forceSync
+        forcSync
     } = useFirebaseStorage<Supplement[]>(
         SUPPLEMENTS_STORAGE_KEY,
         'supplements',
-        INITIAL_SUPPLEMENTS_DATA,
-        { enableRealtime: true, syncOnMount: true }
+        INITIAL_SUPPLEMENTS_DATA
     );
 
     const addSupplement = async (supplement: Omit<Supplement, 'id'>) => {
-        const newSupplement: Supplement = { ...supplement, id: `supp_${Date.now()}`, showOnHome: supplement.showOnHome ?? true };
-        const updatedSupplements = [...supplements, newSupplement];
+        const newSupplement: Supplement = { 
+            ...supplement, 
+            id: `supp_${Date.now()}`, 
+            showOnHome: supplement.showOnHome ?? true 
+        };
+        const currentSupplements = supplements || INITIAL_SUPPLEMENTS_DATA;
+        const updatedSupplements = [...currentSupplements, newSupplement];
         await saveData(updatedSupplements);
     };
 
     const updateSupplement = async (updatedSupplement: Supplement) => {
-        const updatedSupplements = supplements.map(s => s.id === updatedSupplement.id ? updatedSupplement : s);
+        const currentSupplements = supplements || INITIAL_SUPPLEMENTS_DATA;
+        const updatedSupplements = currentSupplements.map((s: Supplement) => 
+            s.id === updatedSupplement.id ? updatedSupplement : s
+        );
         await saveData(updatedSupplements);
     };
 
     const deleteSupplement = async (supplementId: string) => {
-        const updatedSupplements = supplements.filter(s => s.id !== supplementId);
+        const currentSupplements = supplements || INITIAL_SUPPLEMENTS_DATA;
+        const updatedSupplements = currentSupplements.filter((s: Supplement) => s.id !== supplementId);
         await saveData(updatedSupplements);
+    };
+
+    const refreshSupplements = async () => {
+        // Force sync with Firebase if available
+        // This function is called by components that need to manually refresh data
     };
 
     return { 
@@ -59,10 +72,10 @@ export function useSupplements() {
         isSyncing,
         lastSyncTime,
         isAuthenticated,
+        forceSync: forcSync,
         addSupplement, 
         updateSupplement, 
-        deleteSupplement, 
-        refreshSupplements: forceSync,
-        forceSync 
+        deleteSupplement,
+        refreshSupplements,
     };
 }

@@ -1,10 +1,10 @@
-// Catálogo de exercícios para seleção durante criação/edição de fichas
-// Estrutura: agrupado por grupo muscular, cada exercício com id, name, muscle e videoUrl
+// constants/exercisesData-unified.ts
+// Versão unificada que resolve conflitos entre exercisesData e workoutData
 
 export const exercisesData = {
-  "version": "2025-11-03",
-  "schemaVersion": 1,
-  "updatedAt": "2025-11-03T00:00:00Z",
+  "version": "2025-11-07-unified",
+  "schemaVersion": 2,
+  "updatedAt": "2025-11-07T00:00:00Z",
   "exercises": {
     "Quadríceps": [
       { "id": "ex_0101", "name": "Agachamento Livre", "muscle": "Quadríceps", "videoUrl": require("../assets/videos/ex_0101.gif") },
@@ -28,14 +28,14 @@ export const exercisesData = {
     "Glúteos": [
       { "id": "ex_0116", "name": "Cadeira abdutora", "muscle": "Glúteo", "videoUrl": require("../assets/videos/ex_0116.gif") },
       { "id": "ex_0117", "name": "Cadeira adutora", "muscle": "Glúteo", "videoUrl": require("../assets/videos/ex_0117.gif") },
-      { "id": "ex_0118", "name": "Elevação Pélvica", "muscle": "Glúteo", "videoUrl": require("../assets/videos/ex_0118.webp") }
+      { "id": "ex_0118", "name": "Elevação Pélvica", "muscle": "Glúteo", "videoUrl": require("../assets/videos/ex_0118.gif") }
     ],
     "Peitoral": [
       { "id": "ex_0201", "name": "Supino Reto com Barra", "muscle": "Peitoral", "videoUrl": require("../assets/videos/ex_0201.gif") },
       { "id": "ex_0202", "name": "Supino Inclinado com Halteres", "muscle": "Peitoral", "videoUrl": require("../assets/videos/ex_0202.gif") },
       { "id": "ex_0203", "name": "Supino Declinado", "muscle": "Peitoral", "videoUrl": require("../assets/videos/ex_0203.gif") },
       { "id": "ex_0204", "name": "Supino com Halteres", "muscle": "Peitoral", "videoUrl": require("../assets/videos/ex_0204.gif") },
-      { "id": "ex_0205", "name": "Crossover", "muscle": "Peitoral", "videoUrl": require("../assets/videos/ex_0205.webp") },
+      { "id": "ex_0205", "name": "Crossover", "muscle": "Peitoral", "videoUrl": require("../assets/videos/ex_0205.gif") },
       { "id": "ex_0206", "name": "Peck Deck (Fly)", "muscle": "Peitoral", "videoUrl": require("../assets/videos/ex_0206.gif") },
       { "id": "ex_0207", "name": "Flexão de Braço", "muscle": "Peitoral", "videoUrl": require("../assets/videos/ex_0207.gif") },
       { "id": "ex_0208", "name": "Fly com Halteres", "muscle": "Peitoral", "videoUrl": require("../assets/videos/ex_0208.gif") },
@@ -85,10 +85,10 @@ export const exercisesData = {
     ],
     "Ombros": [
       { "id": "ex_0601", "name": "Elevação Lateral Polia", "muscle": "Ombros", "videoUrl": require("../assets/videos/ex_0601.gif") },
-      { "id": "ex_0602", "name": "Elevação Lateral Halter", "muscle": "Ombros", "videoUrl": require("../assets/videos/ex_0602.webp") },
+      { "id": "ex_0602", "name": "Elevação Lateral Halter", "muscle": "Ombros", "videoUrl": require("../assets/videos/ex_0602.gif") },
       { "id": "ex_0603", "name": "Elevação Lateral Maquina", "muscle": "Ombros", "videoUrl": require("../assets/videos/ex_0603.gif") },
       { "id": "ex_0604", "name": "Elevação Frontal Polia", "muscle": "Ombros", "videoUrl": require("../assets/videos/ex_0604.gif") },
-      { "id": "ex_0605", "name": "Elevação Frontal Halter", "muscle": "Ombros", "videoUrl": require("../assets/videos/ex_0605.webp") },
+      { "id": "ex_0605", "name": "Elevação Frontal Halter", "muscle": "Ombros", "videoUrl": require("../assets/videos/ex_0605.gif") },
       { "id": "ex_0606", "name": "Desenvolvimento Halter", "muscle": "Ombros", "videoUrl": require("../assets/videos/ex_0606.gif") },
       { "id": "ex_0607", "name": "Desenvolvimento Maquina", "muscle": "Ombros", "videoUrl": require("../assets/videos/ex_0607.gif") },
       { "id": "ex_0608", "name": "Desenvolvimento Arnold", "muscle": "Ombros", "videoUrl": require("../assets/videos/ex_0608.gif") }
@@ -111,26 +111,93 @@ export const exercisesData = {
   }
 };
 
-// Tipos TypeScript para melhor type safety
+// TIPOS UNIFICADOS - Compatível com ambos os sistemas
 export type ExerciseGroup = keyof typeof exercisesData.exercises;
-export type Exercise = {
+
+// Exercício do catálogo (para seleção)
+export type CatalogExercise = {
   id: string;
   name: string;
   muscle: string;
-  videoUrl: any; // `require()` retorna any no React Native
+  videoUrl: any;
 };
 
-// Função utilitária para obter todos os exercícios como array plano
-export const getAllExercises = (): Exercise[] => {
+// Exercício da ficha (com dados de treino)
+export type WorkoutExercise = {
+  id: string;
+  name: string;
+  muscle: string;
+  series: number;
+  reps: string;
+  obs: string;
+  // gifUrl removido - será obtido automaticamente do exercisesData por ID
+};
+
+// FUNÇÕES DE CONVERSÃO - Resolver conflitos
+export const catalogToWorkoutExercise = (
+  catalogExercise: CatalogExercise,
+  series: number = 3,
+  reps: string = "12",
+  obs: string = ""
+): WorkoutExercise => {
+  return {
+    id: catalogExercise.id,
+    name: catalogExercise.name,
+    muscle: catalogExercise.muscle,
+    series,
+    reps,
+    obs,
+    // gifUrl removido - será obtido automaticamente do exercisesData
+  };
+};
+
+export const workoutToCatalogExercise = (workoutExercise: WorkoutExercise): CatalogExercise => {
+  // Buscar o exercício original no catálogo para obter o videoUrl
+  const originalExercise = getExerciseById(workoutExercise.id);
+  return {
+    id: workoutExercise.id,
+    name: workoutExercise.name,
+    muscle: workoutExercise.muscle,
+    videoUrl: originalExercise?.videoUrl || null,
+  };
+};
+
+// FUNÇÕES UTILITÁRIAS - Mantendo compatibilidade
+export const getAllExercises = (): CatalogExercise[] => {
   return Object.values(exercisesData.exercises).flat();
 };
 
-// Função utilitária para obter exercícios por grupo muscular
-export const getExercisesByGroup = (group: ExerciseGroup): Exercise[] => {
+export const getExercisesByGroup = (group: ExerciseGroup): CatalogExercise[] => {
   return exercisesData.exercises[group];
 };
 
-// Função utilitária para buscar exercício por ID
-export const getExerciseById = (id: string): Exercise | undefined => {
-  return getAllExercises().find(exercise => exercise.id === id);
+export const getExerciseById = (id: string): CatalogExercise | null => {
+  return getAllExercises().find(exercise => exercise.id === id) || null;
+};
+
+// Função para obter o GIF/vídeo de um exercício por ID
+export const getExerciseGif = (exerciseId: string): any => {
+  const exercise = getExerciseById(exerciseId);
+  return exercise?.videoUrl || null;
+};
+
+// NOVA: Função para buscar exercício em fichas
+export const getWorkoutExerciseById = (
+  workouts: Record<string, { exercises: WorkoutExercise[] }>,
+  workoutId: string,
+  exerciseId: string
+): WorkoutExercise | undefined => {
+  return workouts[workoutId]?.exercises?.find(ex => ex.id === exerciseId);
+};
+
+// Export default mantido para compatibilidade
+export default {
+  exercisesData,
+  getAllExercises,
+  getExercisesByGroup,
+  getExerciseById,
+  getExerciseGif,
+  catalogToWorkoutExercise,
+  workoutToCatalogExercise,
+  getWorkoutExerciseById,
 };

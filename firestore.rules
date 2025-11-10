@@ -1,32 +1,32 @@
 // Regras de segurança do Firestore para o GymFlow
-// APENAS usuários com email verificado podem acessar o Firestore
-// Copie essas regras para o Console do Firebase > Firestore Database > Rules
+// REGRAS DE DESENVOLVIMENTO - Permitem autenticação anônima
+// ⚠️  IMPORTANTE: Usar regras mais restritivas em produção
 
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // BLOQUEIO TOTAL para usuários não autenticados - APENAS usuários com email verificado
+    // Permitir acesso para qualquer usuário autenticado (incluindo anônimos)
+    // Para desenvolvimento e testes
+    match /{collection}/{document} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Regra específica para coleções de usuário organizadas
     match /users/{userId} {
-      // Permitir acesso APENAS se:
-      // 1. Usuário está autenticado
-      // 2. UID corresponde ao documento
-      // 3. Email está verificado
       allow read, write: if request.auth != null 
-                      && request.auth.uid == userId 
-                      && request.auth.token.email_verified == true;
+                      && request.auth.uid == userId;
       
-      // Subcoleções de dados do usuário (mesmas regras)
-      match /data/{collection} {
+      // Subcoleções do usuário
+      match /{subcollection}/{docId} {
         allow read, write: if request.auth != null 
-                        && request.auth.uid == userId 
-                        && request.auth.token.email_verified == true;
+                        && request.auth.uid == userId;
       }
     }
     
-    // Negar acesso a tudo o que não está explicitamente permitido
+    // Fallback: Negar acesso para não autenticados
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if request.auth != null;
     }
   }
 }

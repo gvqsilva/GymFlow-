@@ -7,7 +7,7 @@ export interface Exercise {
   series: number;
   reps: string;
   obs: string;
-  gifUrl: string;
+  // gifUrl removido - usará automaticamente os GIFs do exercisesData
 }
 
 export interface Workout {
@@ -24,76 +24,68 @@ export const WORKOUT_DATA: Record<string, Workout> = {
     groups: 'Peito/Ombro/Tríceps ',
     exercises: [
       {
-        id: 'A1',
-        name: 'Supino Inclinado com halteres',
+        id: 'ex_0202',
+        name: 'Supino Inclinado com Halteres',
         muscle: 'Peitoral',
         series: 4,
         reps: '12/10/10/8',
         obs: 'Banco 45°',
-        gifUrl: 'https://www.mundoboaforma.com.br/wp-content/uploads/2020/12/supino-inclinado-com-halteres.gif', // SUBSTITUA PELO SEU GIF
       },
       {
-        id: 'A2',
-        name: 'Supino Reto com halteres',
+        id: 'ex_0204',
+        name: 'Supino com Halteres',
         muscle: 'Peitoral',
         series: 3,
         reps: '12/10/8',
         obs: 'Banco 30°',
-        gifUrl: 'https://www.hipertrofia.org/blog/wp-content/uploads/2020/06/dumbbell-bench-press.gif', // SUBSTITUA PELO SEU GIF
       },
       {
-        id: 'A3',
+        id: 'ex_0212',
         name: 'Supino Articulado Declinado',
         muscle: 'Peitoral',
         series: 4,
         reps: '12/10/10/8',
         obs: '',
-        gifUrl: 'https://www.hipertrofia.org/blog/wp-content/uploads/2018/09/lever-decline-chest-press.gif', // SUBSTITUA PELO SEU GIF
       },
       {
-        id: 'A4',
+        id: 'ex_0213',
         name: 'Crucifixo Máquina',
         muscle: 'Peitoral',
         series: 3,
         reps: '12/10/8',
         obs: '',
-        gifUrl: 'https://www.hipertrofia.org/blog/wp-content/uploads/2023/09/lever-seated-fly.gif', // SUBSTITUA PELO SEU GIF
       },
        {
-        id: 'A5',
-        name: 'Desenvolvimento Máquina',
-        muscle: 'Ombro',
+        id: 'ex_0607',
+        name: 'Desenvolvimento Maquina',
+        muscle: 'Ombros',
         series: 4,
         reps: '12/10/10/8',
         obs: '',
-        gifUrl: 'https://media.tenor.com/vFJSvh8AvhAAAAAM/a1.gif', // SUBSTITUA PELO SEU GIF
       },
       {
-        id: 'A6',
-        name: 'Elevação Lateral com Halter',
-        muscle: 'Ombro',
+        id: 'ex_0602',
+        name: 'Elevação Lateral Halter',
+        muscle: 'Ombros',
         series: 3,
         reps: '12/10/8',
         obs: '',
-        gifUrl: 'https://www.mundoboaforma.com.br/wp-content/uploads/2020/12/ombros-elevacao-lateral-de-ombros-com-halteres.gif', // SUBSTITUA PELO SEU GIF
       },
       {
-        id: 'A7',
-        name: 'Tríceps Testa W',
+        id: 'ex_0505',
+        name: 'Tríceps Testa',
         muscle: 'Tríceps',
         series: 3,
         reps: '12/10/8',
         obs: 'Barra W',
-        gifUrl: 'https://www.hipertrofia.org/blog/wp-content/uploads/2024/02/barbell-lying-triceps-extension-skull-crusher.gif', // SUBSTITUA PELO SEU GIF
       },
       {
-        id: 'A8',
-        name: 'Tríceps Frânces com Halter',
+        id: 'ex_0503',
+        name: 'Tríceps Francês Halter',
         muscle: 'Tríceps',
         series: 3,
         reps: '12/10/8',
         obs: '',
-        gifUrl: 'https://www.hipertrofia.org/blog/wp-content/uploads/2025/01/triceps-frances-com-um-halter-sentado.gif', // SUBSTITUA PELO SEU GIF
       },
     ],
   },
@@ -103,67 +95,60 @@ export const WORKOUT_DATA: Record<string, Workout> = {
     groups: 'Costas/Bíceps ',
     exercises: [
        {
-        id: 'B1',
-        name: 'Puxada Anterior',
+        id: 'ex_0301',
+        name: 'Puxada Frontal',
         muscle: 'Dorsal',
         series: 4,
         reps: '12/10/8/6',
         obs: 'Mapfit 1',
-        gifUrl: 'https://static.wixstatic.com/media/2edbed_f174c44ab99c4ddfbac6867900ef849e~mv2.gif', // SUBSTITUA PELO SEU GIF
       },
       {
-        id: 'B2',
-        name: 'Remada Unilateral Halter',
+        id: 'ex_0304',
+        name: 'Remada Unilateral com Halter',
         muscle: 'Dorsal',
         series: 4,
         reps: '12/10/8/6',
         obs: '"Serrote"',
-        gifUrl: 'https://www.mundoboaforma.com.br/wp-content/uploads/2020/12/costas-remada-unilateral-com-halter-serrote-no-banco.gif', // SUBSTITUA PELO SEU GIF
       },
       {
-        id: 'B3',
-        name: 'Remada Maquina Aberta',
+        id: 'ex_0309',
+        name: 'Remada na Máquina',
         muscle: 'Dorsal',
         series: 3,
         reps: '12/10/8',
         obs: '',
-        gifUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTtYjYInP2FtyerpE6XKOjr-0poe7hrk21F_Q&s', // SUBSTITUA PELO SEU GIF
       },
       {
-        id: 'B4',
+        id: 'ex_0316',
         name: 'Extensão Lombar 45°',
-        muscle: 'Dorsal',
+        muscle: 'Lombar',
         series: 3,
         reps: '12/10/8',
         obs: '',
-        gifUrl: 'https://static.wixstatic.com/media/00b9a7_ad5de5c675cd42afb8738a74fc6da6f4~mv2.gif', // SUBSTITUA PELO SEU GIF
       },
       {
-        id: 'B5',
-        name: 'Remada Alta Polia Baixa',
+        id: 'ex_0313',
+        name: 'Remada Alta',
         muscle: 'Trapézio',
         series: 4,
         reps: '12/10/10/8',
         obs: '',
-        gifUrl: 'https://www.mundoboaforma.com.br/wp-content/uploads/2020/12/ombros-remada-alta-no-cabo.gif', // SUBSTITUA PELO SEU GIF
       },
       {
-        id: 'B6',
-        name: 'Rosca Halters',
-        muscle: 'Biceps',
+        id: 'ex_0403',
+        name: 'Rosca Alternada com Halteres',
+        muscle: 'Bíceps',
         series: 3,
         reps: '12/10/8',
         obs: 'Banco 45°',
-        gifUrl: 'https://www.mundoboaforma.com.br/wp-content/uploads/2020/12/rosca-biceps-com-halteres-no-banco-inclinado.gif', // SUBSTITUA PELO SEU GIF
       },
       {
-        id: 'B7',
+        id: 'ex_0404',
         name: 'Rosca Martelo',
-        muscle: 'Biceps',
+        muscle: 'Bíceps',
         series: 3,
         reps: '12/10/8',
         obs: 'Cross Corda',
-        gifUrl: 'https://www.hipertrofia.org/blog/wp-content/uploads/2024/08/cable-hammer-curl-with-rope.gif', // SUBSTITUA PELO SEU GIF
       },
     ],
   },
@@ -173,76 +158,68 @@ export const WORKOUT_DATA: Record<string, Workout> = {
     groups: 'Perna completo ',
     exercises: [
       {
-        id: 'C1',
-        name: 'Gemeos em Pé',
-        muscle: 'Inferiores',
+        id: 'ex_0802',
+        name: 'Gemeos em Pé Maquina',
+        muscle: 'Panturrilha',
         series: 4,
         reps: '12/10/10/8',
         obs: 'Maquina',
-        gifUrl: 'https://www.mundoboaforma.com.br/wp-content/uploads/2021/03/Panturrilha-em-pe-no-aparelho.gif', // SUBSTITUA PELO SEU GIF
       },
       {
-        id: 'C2',
+        id: 'ex_0104',
         name: 'Agachamento Smith',
-        muscle: 'Inferiores',
+        muscle: 'Quadríceps',
         series: 4,
         reps: '12/10/10/8',
         obs: '',
-        gifUrl: 'https://www.hipertrofia.org/blog/wp-content/uploads/2017/11/smith-full-squat.gif', // SUBSTITUA PELO SEU GIF
       },
       {
-        id: 'C3',
+        id: 'ex_0106',
         name: 'Leg Press Horizontal',
-        muscle: 'Inferiores',
+        muscle: 'Quadríceps',
         series: 3,
         reps: '8',
         obs: 'Unilateral',
-        gifUrl: 'https://gymvisual.com/img/p/1/4/5/9/2/14592.gif', // SUBSTITUA PELO SEU GIF
       },
       {
-        id: 'C4',
+        id: 'ex_0110',
         name: 'Cadeira Extensora',
-        muscle: 'Inferiores',
+        muscle: 'Quadríceps',
         series: 4,
         reps: '11/10/8/6',
         obs: '',
-        gifUrl: 'https://karoldeliberato.com.br/wp-content/uploads/2023/04/image4-1.gif', // SUBSTITUA PELO SEU GIF
       },
       {
-        id: 'C5',
+        id: 'ex_0114',
         name: 'Mesa Flexora',
-        muscle: 'Inferiores',
+        muscle: 'Posterior de Coxa',
         series: 3,
         reps: '12/10/8',
         obs: '',
-        gifUrl: 'https://image.tuasaude.com/media/article/hz/mb/mesa-flexora_75623.gif?width=686&height=487', // SUBSTITUA PELO SEU GIF
       },
       {
-        id: 'C6',
+        id: 'ex_0113',
         name: 'Cadeira Flexora',
-        muscle: 'Inferiores',
+        muscle: 'Posterior de Coxa',
         series: 4,
         reps: '12/10/8/6',
         obs: '',
-        gifUrl: 'https://www.hipertrofia.org/blog/wp-content/uploads/2024/12/cadeira-flexora.gif', // SUBSTITUA PELO SEU GIF
       },
       {
-        id: 'C7',
-        name: 'Cadeira Abdutora',
-        muscle: 'Gluteos',
+        id: 'ex_0116',
+        name: 'Cadeira abdutora',
+        muscle: 'Glúteo',
         series: 4,
         reps: '12/10/10/8',
         obs: '',
-        gifUrl: 'https://www.hipertrofia.org/blog/wp-content/uploads/2024/09/lever-seated-hip-abduction.gif', // SUBSTITUA PELO SEU GIF
       },
       {
-        id: 'C8',
-        name: 'Cadeira Adutora',
-        muscle: 'Gluteos',
+        id: 'ex_0117',
+        name: 'Cadeira adutora',
+        muscle: 'Glúteo',
         series: 4,
         reps: '12/10/10/8',
         obs: '',
-        gifUrl: 'https://grandeatleta.com.br/wp-content/uploads/2018/05/cadeira-adutora-execucao.gif', // SUBSTITUA PELO SEU GIF
       },
     ],
   },

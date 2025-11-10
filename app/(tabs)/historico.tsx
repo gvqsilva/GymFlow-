@@ -16,6 +16,8 @@ import {
 import Toast from 'react-native-toast-message';
 
 import FoodDatabase from '../../data/foodData.json';
+import { useFoodHistory } from '../../hooks/useFoodHistory';
+import { useWorkoutHistory } from '../../hooks/useWorkoutHistory';
 import { firebaseSyncService } from '../../services/firebaseSync';
 
 const themeColor = '#5a4fcf';
@@ -139,6 +141,10 @@ const MealDetail = ({ mealData }: { mealData: GroupedMealData | undefined }) => 
 };
 
 export default function HistoricoScreen() {
+  // ✅ NOVOS HOOKS FIREBASE - Para salvar dados automaticamente
+  const { foodHistory, addFoodEntry, getFoodEntriesByDate } = useFoodHistory();
+  const { workoutHistory, addWorkoutEntry, getWorkoutStats } = useWorkoutHistory();
+  
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [lastResult, setLastResult] = useState<NutritionResult | null>(null);

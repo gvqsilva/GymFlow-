@@ -6,7 +6,6 @@ import React from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Workout } from '../constants/workoutData';
 import { useWorkouts } from '../hooks/useWorkouts';
-import { sortWorkoutsByName } from '../utils/workoutUtils';
 
 const themeColor = '#5a4fcf';
 
@@ -35,8 +34,7 @@ export default function ManageWorkoutsScreen() {
         return <ActivityIndicator size="large" color={themeColor} style={{ flex: 1 }} />;
     }
 
-    // Ordenar fichas por nome para manter ordem consistente
-    const workoutsList = sortWorkoutsByName(workouts);
+    const workoutsList: Workout[] = Object.values(workouts);
 
     return (
         <View style={styles.container}>

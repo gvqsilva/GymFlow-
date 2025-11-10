@@ -1,136 +1,162 @@
 // hooks/useFirebaseStorage.ts
+// Hook para integração com Firebase Firestore
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useCallback, useEffect, useState } from 'react';
+import { auth, db } from '../config/firebase';
 import { authService } from '../services/authService';
-import { firebaseSyncService } from '../services/firebaseSync';
 
 interface UseFirebaseStorageOptions {
-  enableRealtime?: boolean; // Habilitar atualizações em tempo real
-  syncOnMount?: boolean;    // Sincronizar ao montar o componente
+  enableRealtime?: boolean;
+  syncOnMount?: boolean;
+}
+
+interface UseFirebaseStorageReturn<T> {
+  data: T;
+  isLoading: boolean;
+  isSyncing: boolean;
+  lastSyncTime: Date | null;
+  isAuthenticated: boolean;
+  saveData: (data: T) => Promise<void>;
+  forcSync: () => Promise<void>;
 }
 
 export function useFirebaseStorage<T>(
   storageKey: string,
-  collectionName: string,
+  firestoreCollection: string,
   initialData: T,
-  options: UseFirebaseStorageOptions = {
-    enableRealtime: false,
-    syncOnMount: true
-  }
-) {
+  options: UseFirebaseStorageOptions = {}
+): UseFirebaseStorageReturn<T> {
+  const { enableRealtime = false, syncOnMount = false } = options;
+  
   const [data, setData] = useState<T>(initialData);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Carregar dados (AsyncStorage + Firebase)
-  const loadData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      // Esperar autenticação ser inicializada
-      await authService.initialize();
-
-      let loadedData: T;
-
-      if (authService.shouldSyncWithFirebase() && !authService.isInOfflineMode() && options.syncOnMount) {
-        // Sincronizar com Firebase se autenticado e não anônimo e não em modo offline
-        const syncedData = await firebaseSyncService.syncData(storageKey, collectionName);
-        loadedData = syncedData || initialData;
+  // Verificar autenticação real do Firebase
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        console.log('Usuário autenticado:', currentUser.uid);
+        setIsAuthenticated(true);
       } else {
-        // Carregar apenas do AsyncStorage (usuário anônimo, não autenticado ou em modo offline)
-        const storedData = await AsyncStorage.getItem(storageKey);
-        loadedData = storedData ? JSON.parse(storedData) : initialData;
+        console.log('Nenhum usuário autenticado');
+        setIsAuthenticated(false);
       }
+    });
 
-      setData(loadedData);
-      setLastSyncTime(new Date());
-    } catch (error) {
-      console.error(`❌ Erro ao carregar dados de ${collectionName}:`, error);
-      // Em caso de erro, usar dados iniciais
-      setData(initialData);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [storageKey, collectionName, initialData, options.syncOnMount]);
+    return unsubscribe;
+  }, []);
 
-  // Salvar dados (AsyncStorage + Firebase)
-  const saveData = useCallback(async (newData: T) => {
-    setIsSyncing(true);
+  // Carregar dados locais primeiro
+  useEffect(() => {
+    const loadLocalData = async () => {
+      try {
+        setIsLoading(true);
+        const stored = await AsyncStorage.getItem(storageKey);
+        if (stored) {
+          setData(JSON.parse(stored));
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados locais:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadLocalData();
+  }, [storageKey]);
+
+  // Sincronizar com Firebase
+  const syncWithFirebase = useCallback(async () => {
+  if (!isAuthenticated || !auth.currentUser || !authService.shouldSyncWithFirebase()) return;
+
     try {
-      // Salvar localmente primeiro
+      setIsSyncing(true);
+  const userId = auth.currentUser.uid;
+  const docRef = doc(db, 'users', userId, 'data', firestoreCollection);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const firebaseData = docSnap.data();
+        if (firebaseData && firebaseData.data) {
+          setData(firebaseData.data);
+          await AsyncStorage.setItem(storageKey, JSON.stringify(firebaseData.data));
+          setLastSyncTime(new Date());
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao sincronizar com Firebase:', error);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [isAuthenticated, firestoreCollection, storageKey]);
+
+  // Salvar dados no Firebase e localmente
+  const saveData = useCallback(async (newData: T) => {
+    try {
+      setIsSyncing(true);
+
       await AsyncStorage.setItem(storageKey, JSON.stringify(newData));
       setData(newData);
 
-      // Salvar no Firebase se autenticado e não anônimo e não em modo offline
-      if (authService.shouldSyncWithFirebase() && !authService.isInOfflineMode()) {
-        await firebaseSyncService.saveToFirebase(collectionName, newData);
+      if (isAuthenticated && auth.currentUser && authService.shouldSyncWithFirebase()) {
+        const userId = auth.currentUser.uid;
+        const docRef = doc(db, 'users', userId, 'data', firestoreCollection);
+        await setDoc(docRef, {
+          data: newData,
+          lastUpdated: serverTimestamp()
+        }, { merge: true });
         setLastSyncTime(new Date());
+        console.log(`Dados salvos no Firebase: users/${userId}/data/${firestoreCollection}`);
       }
     } catch (error) {
-      console.error(`❌ Erro ao salvar dados de ${collectionName}:`, error);
-      throw error;
+      console.error('Erro ao salvar dados:', error);
     } finally {
       setIsSyncing(false);
     }
-  }, [storageKey, collectionName]);
+  }, [storageKey, isAuthenticated, firestoreCollection]);
 
-  // Forçar sincronização
-  const forcSync = useCallback(async () => {
-    if (!authService.shouldSyncWithFirebase() || authService.isInOfflineMode()) {
-      console.log('Sincronização não disponível no modo atual');
-      return;
-    }
-
-    setIsSyncing(true);
-    try {
-      const syncedData = await firebaseSyncService.syncData(storageKey, collectionName);
-      if (syncedData) {
-        setData(syncedData);
-        setLastSyncTime(new Date());
-      }
-    } catch (error) {
-      console.error(`❌ Erro na sincronização forçada de ${collectionName}:`, error);
-    } finally {
-      setIsSyncing(false);
-    }
-  }, [storageKey, collectionName]);
-
-  // Configurar listener em tempo real
+  // Sync inicial se habilitado
   useEffect(() => {
-    if (options.enableRealtime && authService.shouldSyncWithFirebase()) {
-      // Adicionar um delay para garantir que a autenticação esteja estabilizada
-      const timer = setTimeout(() => {
-        if (authService.shouldSyncWithFirebase()) {
-          firebaseSyncService.setupRealtimeListener(collectionName, (newData) => {
-            setData(newData);
-            setLastSyncTime(new Date());
-            // Atualizar AsyncStorage também
-            AsyncStorage.setItem(storageKey, JSON.stringify(newData));
-          });
+    if (syncOnMount && isAuthenticated) {
+      syncWithFirebase();
+    }
+  }, [syncOnMount, isAuthenticated, syncWithFirebase]);
+
+  // Listener de tempo real se habilitado
+  useEffect(() => {
+  if (!enableRealtime || !isAuthenticated || !auth.currentUser || !authService.shouldSyncWithFirebase()) return;
+
+  const userId = auth.currentUser.uid;
+  const docRef = doc(db, 'users', userId, 'data', firestoreCollection);
+    const unsubscribe = onSnapshot(docRef, (doc) => {
+      if (doc.exists()) {
+        const firebaseData = doc.data();
+        if (firebaseData && firebaseData.data) {
+          setData(firebaseData.data);
+          AsyncStorage.setItem(storageKey, JSON.stringify(firebaseData.data));
+          setLastSyncTime(new Date());
         }
-      }, 1000); // Aguardar 1 segundo
+      }
+    }, (error: any) => {
+      console.error('Erro no listener do Firebase:', error);
+    });
 
-      return () => {
-        clearTimeout(timer);
-        firebaseSyncService.removeListener(collectionName);
-      };
-    }
-  }, [collectionName, storageKey, options.enableRealtime]);
-
-  // Carregar dados na inicialização
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+    return () => unsubscribe();
+  }, [enableRealtime, isAuthenticated, firestoreCollection, storageKey]);
 
   return {
     data,
     isLoading,
     isSyncing,
     lastSyncTime,
+    isAuthenticated,
     saveData,
-    forcSync,
-    reloadData: loadData,
-    isAuthenticated: authService.shouldSyncWithFirebase()
+    forcSync: syncWithFirebase
   };
 }

@@ -4,24 +4,24 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useRef, useState } from 'react';
 import {
-    Animated,
-    Dimensions,
-    FlatList,
-    Image,
-    Modal,
-    Pressable,
-    SafeAreaView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    View
+  Animated,
+  Dimensions,
+  FlatList,
+  Image,
+  Modal,
+  Pressable,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
 } from 'react-native';
 import {
-    Exercise,
-    ExerciseGroup,
-    getAllExercises,
-    getExercisesByGroup
+  CatalogExercise,
+  ExerciseGroup,
+  getAllExercises,
+  getExercisesByGroup
 } from '../constants/exercisesData';
 
 const { width } = Dimensions.get('window');
@@ -30,7 +30,7 @@ const themeColor = '#5a4fcf';
 interface ExerciseSelectorProps {
   visible: boolean;
   onClose: () => void;
-  onSelectExercise: (exercise: Exercise) => void;
+  onSelectExercise: (exercise: CatalogExercise) => void;
   selectedExercises?: string[];
 }
 
@@ -44,7 +44,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
   const [selectedGroup, setSelectedGroup] = useState<ExerciseGroup | 'all' | 'favorites'>('all');
   const [loading, setLoading] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
-  const [previewExercise, setPreviewExercise] = useState<Exercise | null>(null);
+  const [previewExercise, setPreviewExercise] = useState<CatalogExercise | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   
   // Animações
@@ -74,7 +74,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
     
     setTimeout(() => setLoading(false), 300); // Simula loading
     
-    let exercises: Exercise[] = [];
+    let exercises: CatalogExercise[] = [];
     
     if (selectedGroup === 'all') {
       exercises = getAllExercises();
@@ -116,7 +116,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
   };
 
   // Animação de bounce ao selecionar
-  const handleExercisePress = (exercise: Exercise) => {
+  const handleExercisePress = (exercise: CatalogExercise) => {
     if (isExerciseSelected(exercise.id)) {
       return;
     }
@@ -172,7 +172,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
   };
 
   // Preview do exercício
-  const handleLongPress = (exercise: Exercise) => {
+  const handleLongPress = (exercise: CatalogExercise) => {
     setPreviewExercise(exercise);
     setShowPreview(true);
   };
@@ -204,7 +204,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
     );
   };
 
-  const renderExerciseItem = ({ item }: { item: Exercise }) => (
+  const renderExerciseItem = ({ item }: { item: CatalogExercise }) => (
     <Animated.View style={{ transform: [{ scale: bounceAnim }] }}>
       <Pressable
         style={[

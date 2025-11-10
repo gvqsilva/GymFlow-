@@ -1,16 +1,17 @@
-// components/WorkoutExerciseItem.tsx
-// Componente para exibir e editar exercício em uma ficha
+// components/WorkoutExerciseItem-fixed.tsx
+// Versão corrigida com tratamento de erro para imagens e melhor handling
 
 import React, { useState } from 'react';
 import {
-    Alert,
-    Image,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
+import { getExerciseGif } from '../constants/exercisesData';
 import { WorkoutExercise } from '../hooks/useWorkoutExercises';
 
 interface WorkoutExerciseItemProps {
@@ -27,16 +28,39 @@ export const WorkoutExerciseItem: React.FC<WorkoutExerciseItemProps> = ({
   canEdit = true
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const handleRemove = () => {
-    Alert.alert(
-      'Remover Exercício',
-      `Deseja remover "${exercise.name}" da ficha?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Remover', style: 'destructive', onPress: () => onRemove(exercise.id) }
-      ]
-    );
+    try {
+      Alert.alert(
+        'Remover Exercício',
+        `Deseja remover "${exercise.name}" da ficha?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Remover', style: 'destructive', onPress: () => {
+            console.log('🗑️ Removendo exercício:', exercise.name);
+            onRemove(exercise.id);
+          }}
+        ]
+      );
+    } catch (error) {
+      console.error('❌ Erro ao remover exercício:', error);
+    }
+  };
+
+  const handleUpdate = (field: keyof WorkoutExercise, value: string | number) => {
+    try {
+      console.log('📝 Atualizando exercício:', exercise.name, field, value);
+      onUpdate(exercise.id, { [field]: value });
+    } catch (error) {
+      console.error('❌ Erro ao atualizar exercício:', error);
+    }
+  };
+
+  const handleImageError = () => {
+    const exerciseGif = getExerciseGif(exercise.id);
+    console.warn('⚠️ Erro ao carregar imagem:', exerciseGif);
+    setImageError(true);
   };
 
   return (
@@ -47,16 +71,30 @@ export const WorkoutExerciseItem: React.FC<WorkoutExerciseItemProps> = ({
         onPress={() => setIsExpanded(!isExpanded)}
         activeOpacity={0.7}
       >
-        <Image 
-          source={{ uri: exercise.videoUrl }} 
-          style={styles.exerciseImage}
-          resizeMode="cover"
-        />
+        {(() => {
+          const exerciseGif = getExerciseGif(exercise.id);
+          return !imageError && exerciseGif ? (
+            <Image 
+              source={exerciseGif}
+              style={styles.exerciseImage}
+              resizeMode="cover"
+              onError={handleImageError}
+            />
+          ) : (
+            <View style={[styles.exerciseImage, styles.placeholderImage]}>
+              <Text style={styles.placeholderText}>💪</Text>
+            </View>
+          );
+        })()}
         
         <View style={styles.exerciseInfo}>
-          <Text style={styles.exerciseName}>{exercise.name}</Text>
-          <Text style={styles.exerciseMuscle}>{exercise.muscle}</Text>
-          <Text style={styles.quickInfo}>
+          <Text style={styles.exerciseName} numberOfLines={1}>
+            {exercise.name}
+          </Text>
+          <Text style={styles.exerciseMuscle} numberOfLines={1}>
+            {exercise.muscle}
+          </Text>
+          <Text style={styles.quickInfo} numberOfLines={1}>
             {exercise.series}x {exercise.reps}
             {exercise.obs && ` • ${exercise.obs}`}
           </Text>
@@ -66,6 +104,7 @@ export const WorkoutExerciseItem: React.FC<WorkoutExerciseItemProps> = ({
           <TouchableOpacity 
             style={styles.removeButton}
             onPress={handleRemove}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Text style={styles.removeText}>×</Text>
           </TouchableOpacity>
@@ -79,24 +118,29 @@ export const WorkoutExerciseItem: React.FC<WorkoutExerciseItemProps> = ({
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Séries</Text>
               <TextInput
-                style={styles.numberInput}
+                style={styles.input}
                 value={exercise.series.toString()}
                 onChangeText={(text) => {
-                  const series = parseInt(text) || 1;
-                  onUpdate(exercise.id, { series });
+                  const num = parseInt(text) || 1;
+                  if (num > 0 && num <= 20) {
+                    handleUpdate('series', num);
+                  }
                 }}
                 keyboardType="numeric"
                 maxLength={2}
+                selectTextOnFocus
               />
             </View>
-
+            
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Repetições</Text>
               <TextInput
-                style={styles.textInput}
+                style={styles.input}
                 value={exercise.reps}
-                onChangeText={(reps) => onUpdate(exercise.id, { reps })}
-                placeholder="12-15"
+                onChangeText={(text) => handleUpdate('reps', text)}
+                placeholder="Ex: 12, 8-12, 30s"
+                maxLength={20}
+                selectTextOnFocus
               />
             </View>
           </View>
@@ -104,12 +148,13 @@ export const WorkoutExerciseItem: React.FC<WorkoutExerciseItemProps> = ({
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Observações</Text>
             <TextInput
-              style={[styles.textInput, styles.obsInput]}
+              style={[styles.input, styles.obsInput]}
               value={exercise.obs}
-              onChangeText={(obs) => onUpdate(exercise.id, { obs })}
-              placeholder="Ex: descanso 60s, carga progressiva..."
+              onChangeText={(text) => handleUpdate('obs', text)}
+              placeholder="Dicas, carga, tempo de descanso..."
               multiline
-              numberOfLines={2}
+              maxLength={150}
+              selectTextOnFocus
             />
           </View>
         </View>
@@ -121,28 +166,36 @@ export const WorkoutExerciseItem: React.FC<WorkoutExerciseItemProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: 'white',
+    marginBottom: 10,
     borderRadius: 12,
-    marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 2,
+    elevation: 2,
   },
   header: {
     flexDirection: 'row',
-    padding: 16,
     alignItems: 'center',
+    padding: 15,
   },
   exerciseImage: {
     width: 50,
     height: 50,
     borderRadius: 8,
+    marginRight: 12,
     backgroundColor: '#f0f0f0',
+  },
+  placeholderImage: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+  },
+  placeholderText: {
+    fontSize: 20,
   },
   exerciseInfo: {
     flex: 1,
-    marginLeft: 12,
   },
   exerciseName: {
     fontSize: 16,
@@ -152,63 +205,54 @@ const styles = StyleSheet.create({
   },
   exerciseMuscle: {
     fontSize: 14,
-    color: '#0066cc',
+    color: '#666',
     marginBottom: 2,
   },
   quickInfo: {
     fontSize: 12,
-    color: '#666',
+    color: '#999',
   },
   removeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#ff4444',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#ff4757',
     justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: 10,
   },
   removeText: {
     color: 'white',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
-    lineHeight: 22,
   },
   details: {
-    padding: 16,
+    padding: 15,
     paddingTop: 0,
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
   },
   inputRow: {
     flexDirection: 'row',
-    marginBottom: 12,
+    marginBottom: 15,
   },
   inputGroup: {
     flex: 1,
-    marginRight: 8,
+    marginRight: 10,
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#333',
-    marginBottom: 4,
+    marginBottom: 5,
   },
-  numberInput: {
+  input: {
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: '#ddd',
     borderRadius: 8,
-    padding: 12,
+    padding: 10,
     fontSize: 16,
-    textAlign: 'center',
-    backgroundColor: '#f9f9f9',
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#fafafa',
   },
   obsInput: {
     height: 60,

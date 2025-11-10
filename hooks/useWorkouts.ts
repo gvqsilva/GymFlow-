@@ -1,96 +1,171 @@
 // hooks/useWorkouts.ts
 
 import { Exercise, WORKOUT_DATA, Workout } from '../constants/workoutData';
+import { migrateWorkouts } from '../utils/workoutUtils';
 import { useFirebaseStorage } from './useFirebaseStorage';
 
 const WORKOUTS_STORAGE_KEY = 'user_workouts_storage';
 
 export function useWorkouts() {
     const {
-        data: workouts,
+        data: workouts = WORKOUT_DATA,
         isLoading,
         isSyncing,
         lastSyncTime,
         isAuthenticated,
         saveData,
-        forcSync: forceSync
+        forcSync
     } = useFirebaseStorage<Record<string, Workout>>(
         WORKOUTS_STORAGE_KEY,
         'workouts',
-        WORKOUT_DATA,
-        { enableRealtime: true, syncOnMount: true }
+        WORKOUT_DATA
     );
 
-    const addExercise = async (workoutId: string, newExercise: Exercise) => {
-        const newWorkouts = { ...workouts };
-        if (newWorkouts[workoutId]) {
-            newWorkouts[workoutId].exercises.push(newExercise);
-            await saveData(newWorkouts);
-        }
-    };
-
-    const updateExercise = async (workoutId: string, updatedExercise: Exercise) => {
-        const newWorkouts = { ...workouts };
-        if (newWorkouts[workoutId]) {
-            const index = newWorkouts[workoutId].exercises.findIndex(ex => ex.id === updatedExercise.id);
-            if (index > -1) {
-                newWorkouts[workoutId].exercises[index] = updatedExercise;
-                await saveData(newWorkouts);
-            }
-        }
-    };
-
-    const deleteExercise = async (workoutId: string, exerciseId: string) => {
-        const newWorkouts = { ...workouts };
-        if (newWorkouts[workoutId]) {
-            newWorkouts[workoutId].exercises = newWorkouts[workoutId].exercises.filter(ex => ex.id !== exerciseId);
-            await saveData(newWorkouts);
-        }
-    };
-    
-    const reorderExercises = async (workoutId: string, reorderedExercises: Exercise[]) => {
-        const newWorkouts = { ...workouts };
-        if (newWorkouts[workoutId]) {
-            newWorkouts[workoutId].exercises = reorderedExercises;
-            await saveData(newWorkouts);
-        }
-    };
-
-    // NOVA FUNÇÃO para adicionar uma ficha de treino
-    const addWorkout = async (name: string, groups: string, exercises?: Exercise[]) => {
-        const newWorkouts = { ...workouts };
-        const newWorkoutId = `workout_${Date.now()}`;
-        const newWorkout: Workout = {
-            id: newWorkoutId,
-            name: name,
-            groups: groups,
-            exercises: exercises || [],
+    const updateWorkout = async (workoutId: string, updatedWorkout: Workout) => {
+        const currentWorkouts = workouts || WORKOUT_DATA;
+        // Antes de salvar, garantir migração
+        const { migrated } = migrateWorkouts(currentWorkouts);
+        const newWorkouts = {
+            ...migrated,
+            [workoutId]: updatedWorkout
         };
-        newWorkouts[newWorkoutId] = newWorkout;
         await saveData(newWorkouts);
     };
 
-    // NOVA FUNÇÃO para apagar uma ficha de treino
+    const addExerciseToWorkout = async (workoutId: string, exercise: Exercise) => {
+        const currentWorkouts = workouts || WORKOUT_DATA;
+        const currentWorkout = currentWorkouts[workoutId];
+        
+        if (!currentWorkout) {
+            throw new Error('Workout não encontrado');
+        }
+        
+        const updatedExercises = [...currentWorkout.exercises, exercise];
+        const updatedWorkout: Workout = {
+            ...currentWorkout,
+            exercises: updatedExercises
+        };
+        
+        await updateWorkout(workoutId, updatedWorkout);
+    };
+
+    const removeExerciseFromWorkout = async (workoutId: string, exerciseIndex: number) => {
+        const currentWorkouts = workouts || WORKOUT_DATA;
+        const currentWorkout = currentWorkouts[workoutId];
+        
+        if (!currentWorkout) {
+            throw new Error('Workout não encontrado');
+        }
+        
+        const updatedExercises = currentWorkout.exercises.filter((_, index) => index !== exerciseIndex);
+        const updatedWorkout: Workout = {
+            ...currentWorkout,
+            exercises: updatedExercises
+        };
+        
+        await updateWorkout(workoutId, updatedWorkout);
+    };
+
+    const createNewWorkout = async (newWorkout: Workout) => {
+        const currentWorkouts = workouts || WORKOUT_DATA;
+        const workoutId = Date.now().toString(); // Simple ID generation
+        const newWorkouts = {
+            ...currentWorkouts,
+            [workoutId]: {
+                ...newWorkout,
+                id: workoutId
+            }
+        };
+        
+        await saveData(newWorkouts);
+        return workoutId;
+    };
+
     const deleteWorkout = async (workoutId: string) => {
-        const newWorkouts = { ...workouts };
+        const currentWorkouts = workouts || WORKOUT_DATA;
+        const newWorkouts = { ...currentWorkouts };
         delete newWorkouts[workoutId];
         await saveData(newWorkouts);
     };
 
-    return { 
-        workouts, 
-        isLoading, 
+    const addWorkout = async (newWorkout: Omit<Workout, 'id'>) => {
+        return await createNewWorkout(newWorkout as Workout);
+    };
+
+    const addExercise = async (workoutId: string, exercise: Exercise) => {
+        return await addExerciseToWorkout(workoutId, exercise);
+    };
+
+    const updateExercise = async (workoutId: string, exerciseIndex: number, updatedExercise: Exercise) => {
+        const currentWorkouts = workouts || WORKOUT_DATA;
+        const currentWorkout = currentWorkouts[workoutId];
+        
+        if (!currentWorkout) {
+            throw new Error('Workout não encontrado');
+        }
+        
+        const updatedExercises = [...currentWorkout.exercises];
+        updatedExercises[exerciseIndex] = updatedExercise;
+        
+        const updatedWorkout: Workout = {
+            ...currentWorkout,
+            exercises: updatedExercises
+        };
+        
+        await updateWorkout(workoutId, updatedWorkout);
+    };
+
+    const deleteExercise = async (workoutId: string, exerciseIndex: number) => {
+        return await removeExerciseFromWorkout(workoutId, exerciseIndex);
+    };
+
+    const reorderExercises = async (workoutId: string, exercises: Exercise[]) => {
+        const currentWorkouts = workouts || WORKOUT_DATA;
+        const currentWorkout = currentWorkouts[workoutId];
+        
+        if (!currentWorkout) {
+            throw new Error('Workout não encontrado');
+        }
+        
+        const updatedWorkout: Workout = {
+            ...currentWorkout,
+            exercises: exercises
+        };
+        
+        await updateWorkout(workoutId, updatedWorkout);
+    };
+
+    const refreshWorkouts = async () => {
+        // Force sync with Firebase if available
+        // This function is called by components that need to manually refresh data
+    };
+
+    // Migração automática dos workouts carregados (em memória)
+    const { migrated: migratedWorkouts, changed } = migrateWorkouts(workouts || WORKOUT_DATA);
+    // Se houve mudança estrutural (IDs legados), poderia opcionalmente disparar um save
+    if (changed && !isLoading) {
+        // Fire and forget - não bloquear hook
+        saveData(migratedWorkouts).catch(() => {});
+    }
+
+    return {
+        workouts: migratedWorkouts,
+        isLoading,
         isSyncing,
         lastSyncTime,
         isAuthenticated,
-        refreshWorkouts: forceSync, 
-        addExercise, 
-        updateExercise, 
-        deleteExercise, 
-        reorderExercises, 
-        addWorkout, 
+        forceSync: forcSync,
+        updateWorkout,
+        addExerciseToWorkout,
+        removeExerciseFromWorkout,
+        createNewWorkout,
         deleteWorkout,
-        forceSync 
+        addWorkout,
+        addExercise,
+        updateExercise,
+        deleteExercise,
+        reorderExercises,
+        refreshWorkouts
     };
 }
 

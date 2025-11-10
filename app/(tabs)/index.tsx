@@ -12,9 +12,10 @@ import Toast from 'react-native-toast-message';
 import ViewShot from 'react-native-view-shot';
 import ShareCard from '../../components/ShareCard';
 import { useSportsContext } from '../../context/SportsProvider';
+import { useFirebaseData } from '../../hooks/useFirebaseData';
 import { Supplement, useSupplements } from '../../hooks/useSupplements';
+import { DEFAULT_USER_GOALS, DEFAULT_VISIBLE_METRICS } from '../../hooks/useUserConfig';
 import { useWorkouts } from '../../hooks/useWorkouts';
-import { authService } from '../../services/authService';
 import { autoSyncService } from '../../services/autoSync';
 import { firebaseSyncService } from '../../services/firebaseSync';
 
@@ -466,30 +467,36 @@ export default function HomeScreen() {
     const { workouts, isLoading: isLoadingWorkouts, refreshWorkouts } = useWorkouts();
     const { sports } = useSportsContext();
     const { supplements, refreshSupplements } = useSupplements();
-    
-    const [userName, setUserName] = useState('Utilizador');
+
+    // ✅ NOVOS HOOKS FIREBASE - Substituindo estados antigos
+    const firebaseData = useFirebaseData();
+    const {
+        userConfig: userConfigState,
+        supplementsHistory,
+        workoutHistory,
+        foodHistory,
+    } = firebaseData;
+    const currentUserConfig = userConfigState.userConfig;
+
+    const [userName, setUserName] = useState(currentUserConfig?.name || 'Utilizador');
     const [userAvatarColor, setUserAvatarColor] = useState(themeColor);
     const [weeklyGymWorkouts, setWeeklyGymWorkouts] = useState(0);
-    const [supplementsHistory, setSupplementsHistory] = useState<Record<string, any>>({});
     const [weeklySummary, setWeeklySummary] = useState<{ [key: string]: number }>({});
     const [nextWorkoutId, setNextWorkoutId] = useState('A');
     const [totalCaloriesToday, setTotalCaloriesToday] = useState(0);
     const [isDetailsModalVisible, setIsDetailsModalVisible] = useState(false);
     const [todayActivities, setTodayActivities] = useState<any[]>([]);
-    
-    // ✅ NOVO: Estados para melhorias
-    const [visibleMetrics, setVisibleMetrics] = useState({
-        calories: true,
-        activities: true,
-        time: true
-    });
     const [expandedMetric, setExpandedMetric] = useState<string | null>(null);
-    const [userGoals, setUserGoals] = useState({
-        dailyCalories: 500,
-        weeklyWorkouts: 4,
-        weeklyActivities: 5,
-        dailyTime: 120
-    });
+
+    const visibleMetrics = useMemo(() => ({
+        ...DEFAULT_VISIBLE_METRICS,
+        ...(currentUserConfig?.visibleMetrics || {}),
+    }), [currentUserConfig]);
+
+    const userGoals = useMemo(() => ({
+        ...DEFAULT_USER_GOALS,
+        ...(currentUserConfig?.userGoals || {}),
+    }), [currentUserConfig]);
 
     const viewShotRef = useRef<ViewShot>(null);
     const isFocused = useIsFocused();
@@ -533,8 +540,9 @@ export default function HomeScreen() {
                 setUserAvatarColor(profile.avatarColor || themeColor);
             }
 
-            const historyJSON = await AsyncStorage.getItem(SUPPLEMENTS_HISTORY_KEY);
-            setSupplementsHistory(historyJSON ? JSON.parse(historyJSON) : {});
+            // supplementsHistory agora vem do hook Firebase
+            // const historyJSON = await AsyncStorage.getItem(SUPPLEMENTS_HISTORY_KEY);
+            // setSupplementsHistory(historyJSON ? JSON.parse(historyJSON) : {});
 
             const workoutHistoryJSON = await AsyncStorage.getItem('workoutHistory');
             if (workoutHistoryJSON) {
@@ -619,112 +627,22 @@ export default function HomeScreen() {
     }, [userGoals, totalCaloriesToday, weeklySummary, weeklyGymWorkouts]);
 
     // ✅ NOVO: Carregar configurações do usuário
-    const loadUserConfig = useCallback(async () => {
-        try {
-            console.log('🏠 HOME: Carregando configurações...');
-            
-            // Se está autenticado e pode sincronizar com Firebase
-            if (authService.shouldSyncWithFirebase() && !authService.isInOfflineMode()) {
-                console.log('🔥 HOME: Carregando configurações do Firebase...');
-                
-                // Tentar carregar do Firebase primeiro
-                const firebaseConfig = await firebaseSyncService.loadUserConfig();
-                if (firebaseConfig) {
-                    console.log('🔥 HOME: Configurações do Firebase:', firebaseConfig);
-                    
-                    const newVisibleMetrics = firebaseConfig.visibleMetrics || { calories: true, activities: true, time: true };
-                    const newUserGoals = firebaseConfig.userGoals || { dailyCalories: 500, weeklyWorkouts: 4, weeklyActivities: 5, dailyTime: 120 };
-                    
-                    console.log('🔥 HOME: Aplicando visibleMetrics do Firebase:', newVisibleMetrics);
-                    console.log('🔥 HOME: Aplicando userGoals do Firebase:', newUserGoals);
-                    
-                    setVisibleMetrics(newVisibleMetrics);
-                    setUserGoals(newUserGoals);
-                    
-                    // Salvar também localmente para cache
-                    await AsyncStorage.setItem('userConfig', JSON.stringify(firebaseConfig));
-                    return;
-                }
-                console.log('🔥 HOME: Nenhuma configuração encontrada no Firebase, tentando local...');
-            }
-            
-            // Fallback para AsyncStorage local
-            const configJSON = await AsyncStorage.getItem('userConfig');
-            console.log('📱 HOME: Carregando userConfig local:', configJSON);
-            
-            if (configJSON) {
-                const config = JSON.parse(configJSON);
-                console.log('📱 HOME: Config local parseado:', config);
-                
-                const newVisibleMetrics = config.visibleMetrics || { calories: true, activities: true, time: true };
-                const newUserGoals = config.userGoals || { dailyCalories: 500, weeklyWorkouts: 4, weeklyActivities: 5, dailyTime: 120 };
-                
-                console.log('📱 HOME: Aplicando visibleMetrics local:', newVisibleMetrics);
-                console.log('📱 HOME: Aplicando userGoals local:', newUserGoals);
-                
-                setVisibleMetrics(newVisibleMetrics);
-                setUserGoals(newUserGoals);
-            } else {
-                console.log('📱 HOME: Nenhuma config local encontrada, usando padrões');
-            }
-        } catch (e) {
-            console.error("❌ HOME: Failed to load user config.", e);
-        }
-    }, []);
-
-    // ✅ NOVO: Salvar configurações do usuário
-    const saveUserConfig = useCallback(async () => {
-        try {
-            console.log('💾 HOME: Salvando configurações...');
-            
-            const config = {
-                visibleMetrics,
-                userGoals,
-                lastModified: new Date().toISOString(),
-                version: '1.0'
-            };
-            
-            // Salvar localmente primeiro (para cache)
-            await AsyncStorage.setItem('userConfig', JSON.stringify(config));
-            console.log('📱 HOME: Configurações salvas localmente');
-            
-            // Se está autenticado e pode sincronizar com Firebase
-            if (authService.shouldSyncWithFirebase() && !authService.isInOfflineMode()) {
-                console.log('🔥 HOME: Sincronizando com Firebase...');
-                
-                try {
-                    await firebaseSyncService.saveUserConfig(config);
-                    console.log('🔥 HOME: Configurações sincronizadas com Firebase com sucesso');
-                } catch (firebaseError) {
-                    console.warn('🔥 HOME: Erro ao sincronizar com Firebase:', firebaseError);
-                }
-            } else {
-                console.log('📱 HOME: Salvando apenas localmente (offline ou não autenticado)');
-            }
-            
-        } catch (e) {
-            console.error("❌ HOME: Failed to save user config.", e);
-        }
-    }, [visibleMetrics, userGoals]);
-    
     useEffect(() => {
         if (isFocused) {
             refreshSupplements();
             loadData();
-            loadUserConfig();
             refreshWorkouts();
             
             // 🔥 INICIA SINCRONIZAÇÃO AUTOMÁTICA
             autoSyncService.startAutoSync();
         }
-    }, [isFocused, loadData, loadUserConfig, refreshWorkouts, refreshSupplements]);
+    }, [isFocused, loadData, refreshWorkouts, refreshSupplements]);
 
-    // ✅ NOVO: Salvar configurações quando mudarem
     useEffect(() => {
-        if (visibleMetrics && userGoals) {
-            saveUserConfig();
+        if (currentUserConfig?.name) {
+            setUserName(currentUserConfig.name);
         }
-    }, [visibleMetrics, userGoals, saveUserConfig]);
+    }, [currentUserConfig?.name]);
 
     useEffect(() => {
         if (isFocused && !welcomeToastShown.current && userName !== 'Utilizador') {
@@ -740,41 +658,42 @@ export default function HomeScreen() {
 
     const updateSupplementValue = async (supplement: Supplement, newValue: boolean | number) => {
         const today = getLocalDateString();
-        const newHistory = JSON.parse(JSON.stringify(supplementsHistory));
-
-        if (!newHistory[today]) {
-            newHistory[today] = {};
-        }
-
-        const previousValue = newHistory[today][supplement.id];
-        newHistory[today][supplement.id] = newValue;
         
-        if (!newValue) {
-            delete newHistory[today][supplement.id];
-        }
-
-        setSupplementsHistory(newHistory);
-        await AsyncStorage.setItem(SUPPLEMENTS_HISTORY_KEY, JSON.stringify(newHistory));
-
-        // Sincronizar com Firebase
         try {
-            await firebaseSyncService.syncSupplementsHistory(newHistory);
-            console.log('✅ Histórico de suplementos sincronizado com Firebase');
-        } catch (syncError) {
-            console.warn('⚠️ Falha na sincronização com Firebase:', syncError);
-            // Não mostra erro para o usuário, dados já foram salvos localmente
-        }
+            if (typeof newValue === 'boolean' && !newValue) {
+                // Marcar como não tomado (para daily_check)
+                await supplementsHistory.markSupplementNotTaken(supplement.id, supplement.name, today);
+            } else if (typeof newValue === 'number' && newValue === 0) {
+                // Reset para contador
+                await supplementsHistory.markSupplementNotTaken(supplement.id, supplement.name, today);
+            } else {
+                // Marcar como tomado
+                const dose = typeof newValue === 'number' ? newValue : supplement.dose;
+                await supplementsHistory.markSupplementTaken(supplement.id, supplement.name, today, dose);
+            }
 
-        if (supplement.trackingType === 'daily_check') {
+            // Firebase sync é automático através do hook
+            console.log('✅ Histórico de suplementos atualizado automaticamente no Firebase');
+
+            if (supplement.trackingType === 'daily_check') {
+                Toast.show({
+                    type: newValue ? 'success' : 'info',
+                    text1: newValue ? `${supplement.name} registado!` : `Registo de ${supplement.name} removido.`
+                });
+            } else if (supplement.trackingType === 'counter') {
+                const previousValue = supplementsHistory.getSupplementStatus(supplement.id, today)?.timesTaken || 0;
+                const didIncrement = Number(newValue) > previousValue;
+                Toast.show({
+                    type: didIncrement ? 'success' : 'info',
+                    text1: `Dose de ${supplement.name} ${didIncrement ? 'Adicionada' : 'Removida'} (${newValue})`
+                });
+            }
+        } catch (error) {
+            console.error('Erro ao atualizar suplemento:', error);
             Toast.show({
-                type: newValue ? 'success' : 'info',
-                text1: newValue ? `${supplement.name} registado!` : `Registo de ${supplement.name} removido.`
-            });
-        } else if (supplement.trackingType === 'counter') {
-            const didIncrement = newValue > (previousValue || 0);
-            Toast.show({
-                type: didIncrement ? 'success' : 'info',
-                text1: `Dose de ${supplement.name} ${didIncrement ? 'Adicionada' : 'Removida'} (${newValue})`
+                type: 'error',
+                text1: 'Erro ao salvar suplemento',
+                text2: 'Tente novamente'
             });
         }
     };
@@ -947,16 +866,16 @@ export default function HomeScreen() {
                     </View>
 
                     {/* ✅ APRIMORADO: Suplementos com design melhorado */}
-                    {supplements.filter(s => s.showOnHome !== false).length > 0 && (
+                    {supplements.filter((s: any) => s.showOnHome !== false).length > 0 && (
                         <View style={styles.supplementsSection}>
                             <Text style={styles.sectionTitle}>
                                 <Ionicons name="medical-outline" size={20} color={theme.colors.primary} /> Suplementos Diários </Text>
-                            {supplements.filter(s => s.showOnHome !== false).map((supplement, index) => {
+                            {supplements.filter((s: any) => s.showOnHome !== false).map((supplement: any, index: number) => {
                                 const today = getLocalDateString();
-                                const currentValue = supplementsHistory[today]?.[supplement.id];
+                                const supplementStatus = supplementsHistory.getSupplementStatus(supplement.id, today);
 
                                 if (supplement.trackingType === 'daily_check') {
-                                    const isTaken = !!currentValue;
+                                    const isTaken = supplementStatus?.taken || false;
                                     return (
                                         <Animated.View 
                                             key={supplement.id}
@@ -994,7 +913,7 @@ export default function HomeScreen() {
                                 }
 
                                 if (supplement.trackingType === 'counter') {
-                                    const count = currentValue || 0;
+                                    const count = supplementStatus?.timesTaken || 0;
                                     return (
                                         <View key={supplement.id} style={styles.supplementCardEnhanced}>
                                             <View style={styles.supplementContent}>

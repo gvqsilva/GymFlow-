@@ -7,7 +7,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ExerciseSelector } from '../../components/ExerciseSelectorEnhanced';
-import { Exercise as CatalogExercise } from '../../constants/exercisesData';
+import { CatalogExercise } from '../../constants/exercisesData';
 import { Exercise } from '../../constants/workoutData';
 import { useWorkouts } from '../../hooks/useWorkouts';
 
@@ -28,25 +28,22 @@ export default function EditWorkoutScreen() {
     const workout = id ? workouts[id] : null;
 
     const getSelectedExerciseIds = (): string[] => {
-        return workout?.exercises.map(ex => ex.id) || [];
+        return workout?.exercises.map((ex: any) => ex.id) || [];
     };
 
-    useFocusEffect(
-        React.useCallback(() => {
-            refreshWorkouts();
-        }, [])
-    );
-
     const handleDelete = (exerciseId: string, exerciseName: string) => {
-        if (!id) return;
+        if (!id || !workout) return;
+        const exerciseIndex = workout.exercises.findIndex((ex: any) => ex.id === exerciseId);
+        if (exerciseIndex === -1) return;
+        
         Alert.alert(
             `Apagar "${exerciseName}"?`,
             "Esta ação não pode ser desfeita.",
             [
                 { text: "Cancelar" },
-                { text: "Apagar", style: "destructive", onPress: () => deleteExercise(id, exerciseId) }
+                { text: "Apagar", style: "destructive", onPress: () => deleteExercise(id, exerciseIndex) }
             ]
-        )
+        );
     };
 
     const handleSelectExercise = (catalogExercise: CatalogExercise) => {
@@ -60,7 +57,7 @@ export default function EditWorkoutScreen() {
             series: 3, // Valor padrão
             reps: '12', // Valor padrão
             obs: '',
-            gifUrl: catalogExercise.videoUrl || ''
+            // gifUrl removido - será obtido automaticamente pelo ID
         };
         
         addExercise(id, exercise);
