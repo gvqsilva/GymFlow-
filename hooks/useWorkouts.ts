@@ -1,6 +1,7 @@
 // hooks/useWorkouts.ts
 
 import { Exercise, WORKOUT_DATA, Workout } from '../constants/workoutData';
+import { ToastPresets } from '../utils/toastUtils';
 import { migrateWorkouts } from '../utils/workoutUtils';
 import { useFirebaseStorage } from './useFirebaseStorage';
 
@@ -47,6 +48,8 @@ export function useWorkouts() {
         };
         
         await updateWorkout(workoutId, updatedWorkout);
+        
+        ToastPresets.exerciseAdded(exercise.name);
     };
 
     const removeExerciseFromWorkout = async (workoutId: string, exerciseIndex: number) => {
@@ -78,14 +81,20 @@ export function useWorkouts() {
         };
         
         await saveData(newWorkouts);
+        
+        ToastPresets.workoutCreated(newWorkout.name);
+        
         return workoutId;
     };
 
     const deleteWorkout = async (workoutId: string) => {
         const currentWorkouts = workouts || WORKOUT_DATA;
+        const workoutName = currentWorkouts[workoutId]?.name || 'Treino';
         const newWorkouts = { ...currentWorkouts };
         delete newWorkouts[workoutId];
         await saveData(newWorkouts);
+        
+        ToastPresets.info('Treino removido', `${workoutName} foi excluído.`);
     };
 
     const addWorkout = async (newWorkout: Omit<Workout, 'id'>) => {

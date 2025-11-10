@@ -1,5 +1,6 @@
 // hooks/useSupplements.ts
 
+import { ToastPresets } from '../utils/toastUtils';
 import { useFirebaseStorage } from './useFirebaseStorage';
 
 export type TrackingType = 'daily_check' | 'counter';
@@ -45,6 +46,8 @@ export function useSupplements() {
         const currentSupplements = supplements || INITIAL_SUPPLEMENTS_DATA;
         const updatedSupplements = [...currentSupplements, newSupplement];
         await saveData(updatedSupplements);
+        
+        ToastPresets.success('Suplemento adicionado!', 'Suplemento adicionado com sucesso!');
     };
 
     const updateSupplement = async (updatedSupplement: Supplement) => {
@@ -57,8 +60,11 @@ export function useSupplements() {
 
     const deleteSupplement = async (supplementId: string) => {
         const currentSupplements = supplements || INITIAL_SUPPLEMENTS_DATA;
+        const supplementName = currentSupplements.find(s => s.id === supplementId)?.name || 'Suplemento';
         const updatedSupplements = currentSupplements.filter((s: Supplement) => s.id !== supplementId);
         await saveData(updatedSupplements);
+        
+        ToastPresets.info('Suplemento removido', `${supplementName} foi excluído da lista.`);
     };
 
     const refreshSupplements = async () => {

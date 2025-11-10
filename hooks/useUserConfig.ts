@@ -1,5 +1,6 @@
 // hooks/useUserConfig.ts
 
+import { ToastPresets } from '../utils/toastUtils';
 import { useFirebaseStorage } from './useFirebaseStorage';
 
 export interface UserGoals {
@@ -136,6 +137,8 @@ export function useUserConfig() {
                 ...(updates.visibleMetrics || {}),
             }
         });
+        
+        ToastPresets.success('Preferências salvas!', 'Configurações da tela inicial atualizadas.');
     };
 
     const resetHomePreferences = async () => {
@@ -147,6 +150,8 @@ export function useUserConfig() {
 
     const updatePersonalInfo = async (personalInfo: Pick<UserConfig, 'name' | 'age' | 'weight' | 'height' | 'gender' | 'activityLevel'>) => {
         await updateUserConfig(personalInfo);
+        
+        ToastPresets.success('Perfil atualizado!', 'Suas informações pessoais foram salvas.');
     };
 
     const updateFitnessGoals = async (goals: Pick<UserConfig, 'fitnessGoal' | 'targetWeight' | 'dailyCalorieGoal' | 'weeklyWorkoutGoal'>) => {

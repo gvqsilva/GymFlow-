@@ -4,11 +4,60 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { Stack, useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import Toast from 'react-native-toast-message';
+import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
 import { SportsProvider } from '../context/SportsProvider';
 import { authService } from '../services/authService';
 
 const themeColor = '#5a4fcf';
+
+// Configuração customizada do Toast
+const toastConfig = {
+  success: (props: any) => (
+    <BaseToast
+      {...props}
+      style={{ borderLeftColor: '#00C851' }}
+      contentContainerStyle={{ paddingHorizontal: 15 }}
+      text1Style={{
+        fontSize: 16,
+        fontWeight: '600'
+      }}
+      text2Style={{
+        fontSize: 14,
+        color: '#666'
+      }}
+    />
+  ),
+  error: (props: any) => (
+    <ErrorToast
+      {...props}
+      style={{ borderLeftColor: '#ff4444' }}
+      contentContainerStyle={{ paddingHorizontal: 15 }}
+      text1Style={{
+        fontSize: 16,
+        fontWeight: '600'
+      }}
+      text2Style={{
+        fontSize: 14,
+        color: '#666'
+      }}
+    />
+  ),
+  info: (props: any) => (
+    <BaseToast
+      {...props}
+      style={{ borderLeftColor: themeColor }}
+      contentContainerStyle={{ paddingHorizontal: 15 }}
+      text1Style={{
+        fontSize: 16,
+        fontWeight: '600'
+      }}
+      text2Style={{
+        fontSize: 14,
+        color: '#666'
+      }}
+    />
+  ),
+};
 
 // 🔔 Configuração global das notificações (SDK 51+)
 Notifications.setNotificationHandler({
@@ -106,7 +155,8 @@ export default function RootLayout() {
         <Stack.Screen name="suplemento-modal" options={{ presentation: 'modal', title: 'Suplemento' }} />
       </Stack>
 
-      <Toast />
+      {/* Toast com configuração customizada - renderizado por último para aparecer sobre tudo */}
+      <Toast config={toastConfig} />
     </SportsProvider>
   );
 }

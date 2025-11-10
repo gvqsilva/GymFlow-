@@ -1,9 +1,10 @@
 // hooks/useSports.ts
 
-import { useState, useEffect, useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCallback, useEffect, useState } from 'react';
 import { IconInfo } from '../constants/iconList';
+import { ToastPresets } from '../utils/toastUtils';
 
 export interface Sport {
     id: string;
@@ -70,16 +71,22 @@ export function useSports() {
         
         const updatedSports = [...sports, newSport];
         await saveSports(updatedSports);
+        
+        ToastPresets.success('Esporte adicionado!', `${name} foi salvo na sua lista.`);
     };
 
     const deleteSport = async (sportId: string) => {
         // Apenas "Academia" não pode ser removida.
         if (sportId === 'academia') {
-            alert('A "Academia" não pode ser removida.');
+            ToastPresets.error('Não é possível remover', 'A "Academia" é um esporte padrão.');
             return;
         }
+        
+        const sportToDelete = sports.find(s => s.id === sportId);
         const updatedSports = sports.filter(sport => sport.id !== sportId);
         await saveSports(updatedSports);
+        
+        ToastPresets.info('Esporte removido', `${sportToDelete?.name || 'Esporte'} foi excluído da lista.`);
     };
 
     return { sports, isLoading, addSport, deleteSport, refreshSports: loadSports };

@@ -2,7 +2,8 @@
 
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { TrackingType, useSupplements } from '../hooks/useSupplements';
 
 const themeColor = '#5a4fcf';
@@ -33,26 +34,47 @@ export default function SupplementModal() {
         }
     }, [id, supplements, isEditing]);
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!name || !dose || !unit) {
-            Alert.alert("Erro", "Por favor, preencha todos os campos.");
+            Toast.show({
+                type: 'error',
+                text1: 'Campos obrigatórios',
+                text2: 'Por favor, preencha todos os campos.',
+                visibilityTime: 3000,
+            });
             return;
         }
 
-        const supplementData = {
-            name,
-            dose: parseFloat(dose.replace(',', '.')) || 0,
-            unit,
-            trackingType,
-            showOnHome,
-        };
+        try {
+            const supplementData = {
+                name,
+                dose: parseFloat(dose.replace(',', '.')) || 0,
+                unit,
+                trackingType,
+                showOnHome,
+            };
 
-        if (isEditing) {
-            updateSupplement({ ...supplementData, id });
-        } else {
-            addSupplement(supplementData);
+            if (isEditing) {
+                await updateSupplement({ ...supplementData, id });
+                Toast.show({
+                    type: 'success',
+                    text1: 'Suplemento atualizado!',
+                    text2: `${name} foi editado com sucesso.`,
+                    visibilityTime: 2500,
+                });
+            } else {
+                await addSupplement(supplementData);
+                // Toast já é mostrado no hook useSupplements
+            }
+            router.back();
+        } catch (error) {
+            Toast.show({
+                type: 'error',
+                text1: 'Erro ao salvar',
+                text2: 'Não foi possível salvar o suplemento.',
+                visibilityTime: 3000,
+            });
         }
-        router.back();
     };
 
     return (
