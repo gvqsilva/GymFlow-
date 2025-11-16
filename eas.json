@@ -10,7 +10,16 @@
       }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "ios": {
+        "simulator": true,
+        "buildConfiguration": "Release"
+      },
+      "env": {
+        "APP_NAME": "GymFlow-Preview",
+        "APP_ICON": "./assets/images/icon-gym.png",
+        "APP_PACKAGE": "brainiac.workout.preview"
+      }
     },
     "production": {
       "autoIncrement": true,

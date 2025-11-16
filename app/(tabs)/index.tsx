@@ -663,9 +663,18 @@ export default function HomeScreen() {
             if (typeof newValue === 'boolean' && !newValue) {
                 // Marcar como não tomado (para daily_check)
                 await supplementsHistory.markSupplementNotTaken(supplement.id, supplement.name, today);
-            } else if (typeof newValue === 'number' && newValue === 0) {
-                // Reset para contador
-                await supplementsHistory.markSupplementNotTaken(supplement.id, supplement.name, today);
+            } else if (typeof newValue === 'number') {
+                const previousValue = supplementsHistory.getSupplementStatus(supplement.id, today)?.timesTaken || 0;
+                if (newValue < previousValue) {
+                    // Remover dose
+                    await supplementsHistory.updateSupplementEntry(supplement.id, today, { timesTaken: newValue });
+                } else if (newValue > previousValue) {
+                    // Adicionar dose
+                    await supplementsHistory.markSupplementTaken(supplement.id, supplement.name, today, supplement.dose);
+                } else if (newValue === 0) {
+                    // Reset para contador
+                    await supplementsHistory.markSupplementNotTaken(supplement.id, supplement.name, today);
+                }
             } else {
                 // Marcar como tomado
                 const dose = typeof newValue === 'number' ? newValue : supplement.dose;
@@ -926,7 +935,7 @@ export default function HomeScreen() {
                                                     <TouchableOpacity 
                                                         onPress={() => {
                                                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                                                            updateSupplementValue(supplement, Math.max(0, count - 1));
+                                                                updateSupplementValue(supplement, Math.max(0, count - 1));
                                                         }} 
                                                         style={[styles.counterButtonEnhanced, styles.counterButtonMinus]}
                                                     >

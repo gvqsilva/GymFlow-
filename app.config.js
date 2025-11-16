@@ -10,6 +10,10 @@ export default ({ config }) => {
     userInterfaceStyle: 'automatic',
     ios: {
       supportsTablet: true,
+      bundleIdentifier: 'com.brainiac.gymflow',
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
+      },
     },
     android: {
       package: process.env.APP_PACKAGE || 'brainiac.workout_.dev', // Package único para cada build

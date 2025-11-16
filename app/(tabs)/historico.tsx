@@ -1,18 +1,20 @@
 // app/(tabs)/historico.tsx
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Stack } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    Pressable,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  Keyboard,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Stack } from 'expo-router';
 import Toast from 'react-native-toast-message';
 
 import FoodDatabase from '../../data/foodData.json';
@@ -60,7 +62,7 @@ interface GroupedMealData {
 // --- FIM DAS INTERFACES ---
 
 const allFoods: FoodItem[] = Object.values(FoodDatabase).flat();
-// Usa componentes de data local para evitar problemas com UTC/toISOString
+
 const getLocalDateString = (date: Date | string = new Date()) => {
   const d = new Date(date);
   const y = d.getFullYear();
@@ -141,10 +143,10 @@ const MealDetail = ({ mealData }: { mealData: GroupedMealData | undefined }) => 
 };
 
 export default function HistoricoScreen() {
-  // ✅ NOVOS HOOKS FIREBASE - Para salvar dados automaticamente
+  // hooks (mantive suas chamadas originais)
   const { foodHistory, addFoodEntry, getFoodEntriesByDate } = useFoodHistory();
   const { workoutHistory, addWorkoutEntry, getWorkoutStats } = useWorkoutHistory();
-  
+
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [lastResult, setLastResult] = useState<NutritionResult | null>(null);
@@ -156,7 +158,7 @@ export default function HistoricoScreen() {
   const [isInputFocused, setIsInputFocused] = useState(false);
 
   const loadDailySummary = useCallback(async () => {
-    // Primeiro carrega dados do Firebase se disponível
+    // tenta sincronizar com firebase, mas não falha a UI se der errado
     try {
       const firebaseHistory = await firebaseSyncService.loadFoodHistory();
       if (firebaseHistory && firebaseHistory.length > 0) {
@@ -166,8 +168,7 @@ export default function HistoricoScreen() {
     } catch (syncError) {
       console.warn('⚠️ Falha ao carregar do Firebase, usando dados locais:', syncError);
     }
-    
-    // Carrega resumo diário
+
     await getDailySummary(setDailyTotalCalories, setDailyMealsData);
   }, []);
 
@@ -189,14 +190,13 @@ export default function HistoricoScreen() {
       const existingEntries: FoodEntry[] = existingEntriesJSON ? JSON.parse(existingEntriesJSON) : [];
       existingEntries.unshift(newEntry);
       await AsyncStorage.setItem('foodHistory', JSON.stringify(existingEntries));
-      
-      // Sincronizar com Firebase
+
+      // Sincronizar com Firebase (tentativa silenciosa)
       try {
         await firebaseSyncService.syncFoodHistory(existingEntries);
         console.log('✅ Histórico de alimentação sincronizado com Firebase');
       } catch (syncError) {
         console.warn('⚠️ Falha na sincronização com Firebase:', syncError);
-        // Não mostra erro para o usuário, dados já foram salvos localmente
       }
     } catch (e) {
       console.error('Falha ao salvar histórico.', e);
@@ -226,6 +226,7 @@ export default function HistoricoScreen() {
     setSuggestions([]);
   };
 
+  // --- CORREÇÃO: NÃO COLOQUE JSX DENTRO DE funcoes auxiliares ---
   const handleSearch = async () => {
     if (!query.trim()) {
       Toast.show({ type: 'error', text1: 'Campo Vazio' });
@@ -251,7 +252,7 @@ export default function HistoricoScreen() {
     if (quantityMatch) {
       quantity = parseInt(quantityMatch[1], 10);
     }
-    
+
     for (const unit in knownUnits) {
       for (const keyword of knownUnits[unit]) {
         if (upperQuery.includes(keyword)) {
@@ -292,23 +293,14 @@ export default function HistoricoScreen() {
       carbs: parseFloat((foundFood.carbs * factor).toFixed(1)),
       fat: parseFloat((foundFood.fat * factor).toFixed(1)),
     };
-    
+
     setLastResult(finalResult);
     await saveFoodEntry(query, finalResult, selectedMeal);
     await loadDailySummary();
-    setViewingMeal(selectedMeal);
-
-    Toast.show({
-        type: 'success',
-        text1: 'Refeição Registada!',
-        text2: `${finalResult.calories} Kcal adicionadas em ${selectedMeal}.`
-    });
-    setQuery('');
     setIsLoading(false);
   };
 
-  const currentMealDetails = dailyMealsData.find(m => m.mealType === viewingMeal);
-
+  // --- JSX do componente (apenas aqui, no return) ---
   return (
     <SafeAreaView style={styles.safeArea}>
       <Stack.Screen
@@ -319,31 +311,31 @@ export default function HistoricoScreen() {
           headerTintColor: '#fff',
         }}
       />
-      <View style={styles.container}>
-        <View style={styles.summaryBox}>
-          <Text style={styles.summaryTitle}>Total Consumido Hoje</Text>
-          <Text style={styles.summaryKcal}>{dailyTotalCalories} Kcal</Text>
-        </View>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} style={{ flex: 1 }}>
+        <View style={styles.container}>
+          <View style={styles.summaryBox}>
+            <Text style={styles.summaryTitle}>Total Consumido Hoje</Text>
+            <Text style={styles.summaryKcal}>{dailyTotalCalories} Kcal</Text>
+          </View>
 
-        <Text style={styles.headerTitle}>Refeição para Registro</Text>
-        <View style={styles.mealSelectorContainer}>
-          {MEAL_TYPES.map(meal => (
-            <Pressable
-              key={meal}
-              style={[styles.mealButton, selectedMeal === meal && styles.mealButtonActive]}
-              onPress={() => setSelectedMeal(meal)}
-              disabled={isLoading}
-            >
-              <Text style={[styles.mealButtonText, selectedMeal === meal && styles.mealButtonTextActive]}>
-                {meal}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+          <Text style={styles.headerTitle}>Refeição para Registro</Text>
+          <View style={styles.mealSelectorContainer}>
+            {MEAL_TYPES.map(meal => (
+              <Pressable
+                key={meal}
+                style={[styles.mealButton, selectedMeal === meal && styles.mealButtonActive]}
+                onPress={() => setSelectedMeal(meal)}
+                disabled={isLoading}
+              >
+                <Text style={[styles.mealButtonText, selectedMeal === meal && styles.mealButtonTextActive]}>
+                  {meal}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
 
-        <Text style={[styles.headerTitle, { marginTop: 20 }]}>Adicionar Alimento</Text>
-        
-        <View>
+          <Text style={[styles.headerTitle, { marginTop: 20 }]}>Adicionar Alimento</Text>
+          <View>
             <TextInput
               style={styles.input}
               placeholder="Ex: 150g de Arroz Branco"
@@ -354,81 +346,77 @@ export default function HistoricoScreen() {
               onFocus={() => setIsInputFocused(true)}
               onBlur={() => setTimeout(() => setIsInputFocused(false), 200)}
             />
-            
             {isInputFocused && suggestions.length > 0 && (
-                <FlatList
-                    data={suggestions}
-                    keyExtractor={(item) => item.name}
-                    style={styles.suggestionsList}
-                    renderItem={({ item }) => (
-                        <Pressable style={styles.suggestionItem} onPress={() => onSuggestionPress(item.name)}>
-                            <Text style={styles.suggestionText}>{item.name}</Text>
-                        </Pressable>
-                    )}
-                    keyboardShouldPersistTaps="always"
-                />
+              <FlatList
+                data={suggestions}
+                keyExtractor={(item) => item.name}
+                style={styles.suggestionsList}
+                renderItem={({ item }) => (
+                  <Pressable style={styles.suggestionItem} onPress={() => onSuggestionPress(item.name)}>
+                    <Text style={styles.suggestionText}>{item.name}</Text>
+                  </Pressable>
+                )}
+                keyboardShouldPersistTaps="always"
+              />
             )}
+          </View>
+
+          <Pressable
+            style={[styles.searchButton, isLoading && styles.searchButtonDisabled]}
+            onPress={handleSearch}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text style={styles.buttonText}>Calcular e Registrar Refeição</Text>
+            )}
+          </Pressable>
+
+          <View style={styles.resultsContainer}>
+            {lastResult ? (
+              <View>
+                <Text style={styles.resultTitle}>Análise Rápida</Text>
+                <ResultMacroText emoji="⚡️" label="Calorias" value={lastResult.calories} unit="Kcal" />
+                <ResultMacroText emoji="🥩" label="Proteína" value={lastResult.protein} unit="g" />
+                <ResultMacroText emoji="🍚" label="Carboidratos" value={lastResult.carbs} unit="g" />
+                <ResultMacroText emoji="🥑" label="Gordura" value={lastResult.fat} unit="g" />
+              </View>
+            ) : (
+              <View>
+                <Text style={[styles.infoText, { marginBottom: 10 }]}>A aplicação usa a base de dados local.</Text>
+                <Text style={styles.infoTextBold}>Formato: [Qtd] [Unidade] [Alimento]</Text>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.separator} />
+
+          <Text style={styles.listSectionHeader}>Histórico Detalhado do Dia</Text>
+          <View style={styles.mealSelectorContainer}>
+            {dailyMealsData.map((meal) => (
+              <Pressable
+                key={`view-${meal.mealType}`}
+                style={[styles.viewMealButton, viewingMeal === meal.mealType && styles.viewMealButtonActive]}
+                onPress={() => setViewingMeal(meal.mealType)}
+              >
+                <Text style={[styles.viewMealButtonText, viewingMeal === meal.mealType && styles.mealButtonTextActive]}>
+                  {meal.mealType} ({meal.totalCalories} Kcal)
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <MealDetail mealData={dailyMealsData.find(m => m.mealType === viewingMeal)} />
         </View>
-
-        <Pressable
-          style={[styles.searchButton, isLoading && styles.searchButtonDisabled]}
-          onPress={handleSearch}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <Text style={styles.buttonText}>Calcular e Registrar Refeição</Text>
-          )}
-        </Pressable>
-
-        <View style={styles.resultsContainer}>
-          {lastResult ? (
-            <View>
-              <Text style={styles.resultTitle}>Análise Rápida</Text>
-              <ResultMacroText emoji="⚡️" label="Calorias" value={lastResult.calories} unit="Kcal" />
-              <ResultMacroText emoji="🥩" label="Proteína" value={lastResult.protein} unit="g" />
-              <ResultMacroText emoji="🍚" label="Carboidratos" value={lastResult.carbs} unit="g" />
-              <ResultMacroText emoji="🥑" label="Gordura" value={lastResult.fat} unit="g" />
-            </View>
-          ) : (
-            <View>
-              <Text style={[styles.infoText, { marginBottom: 10 }]}>
-                A aplicação usa a base de dados local.
-              </Text>
-              <Text style={styles.infoTextBold}>
-                Formato: [Qtd] [Unidade] [Alimento]
-              </Text>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.separator} />
-
-        <Text style={styles.listSectionHeader}>Histórico Detalhado do Dia</Text>
-        <View style={styles.mealSelectorContainer}>
-          {dailyMealsData.map((meal) => (
-            <Pressable
-              key={`view-${meal.mealType}`}
-              style={[styles.viewMealButton, viewingMeal === meal.mealType && styles.viewMealButtonActive]}
-              onPress={() => setViewingMeal(meal.mealType)}
-            >
-              <Text style={[styles.viewMealButtonText, viewingMeal === meal.mealType && styles.mealButtonTextActive]}>
-                {meal.mealType} ({meal.totalCalories} Kcal)
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <MealDetail mealData={currentMealDetails} />
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#f0f2f5' },
-  container: { flex: 1, padding: 20 },
+  container: { padding: 20 },
   headerTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#333' },
   listSectionHeader: { fontSize: 20, fontWeight: 'bold', marginBottom: 15, color: themeColor },
   input: {

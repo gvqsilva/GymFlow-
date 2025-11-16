@@ -225,6 +225,7 @@ export default function ManageSupplementsScreen() {
                                             const newVal = !(item.showOnHome ?? true);
                                             try {
                                                 await updateSupplement({ ...item, showOnHome: newVal } as any);
+                                                await refreshSupplements();
                                                 Toast.show({ type: 'success', text1: newVal ? 'Visível na home' : 'Oculto na home' });
                                             } catch (e) {
                                                 console.warn('Falha ao atualizar visibilidade:', e);

@@ -1,128 +1,607 @@
-# 📱 GymFlow — Diário de Treino, Nutrição e Suplementação
+# 📱 GymFlow — Aplicação Completa de Fitness e Bem-Estar
 
-**Última Actualização:** 06 de Novembro de 2025
-**Estado:** Funcionalidade local completa — pronto para testes no Expo (iOS/Android/Web)
-
----
-
-## 📑 Sumário
-
-- [Visão geral](#visão-geral)
-- [Funcionalidades principais](#funcionalidades-principais)
-- [Instalação e execução](#instalação-e-execução)
-- [Estrutura do projeto](#estrutura-do-projeto)
-- [Armazenamento de dados e chaves importantes](#armazenamento-de-dados-e-chaves-importantes)
-- [Resolução de problemas comuns](#resolução-de-problemas-comuns)
-- [Desenvolvimento e contribuições](#desenvolvimento-e-contribuições)
-- [Roadmap & melhorias futuras](#roadmap--melhorias-futuras)
+**Versão:** 1.0.0 | **Última Atualização:** 11 de Novembro de 2025
+**Status:** ✅ Funcionalidade completa — pronto para produção (iOS/Android/Web)
 
 ---
 
-## Visão geral
+## 📋 Índice
 
-GymFlow é uma aplicação móvel (Expo/React Native + TypeScript) desenhada para acompanhar treinos, nutrição e suplementação do utilizador.
-
-Principais objetivos:
-- Gerir fichas de musculação e outras modalidades
-- Registar alimentos e acompanhar o balanço energético diário
-- Agendar e gerir suplementos e lembretes
-- Fornecer métricas simples (IMC, TDEE estimado, calorias gastas)
-
----
-
-## Funcionalidades principais
-
-- Dashboard diário com resumo de calorias consumidas e gastas
-- Registro de treinos por desporto (inclui fluxos dedicados para Musculação e Natação)
-- Fichas de treino (Musculação) com contabilização automática do treino do dia
-- Cálculo de gasto calórico por atividade usando METs (arquivo: `constants/metData.ts`)
-- Diário alimentar com busca inteligente e agrupamento por refeição
-- Perfil do utilizador com cálculo de IMC, idade e TDEE estimado (`perfil.tsx`, `perfil-modal.tsx`)
-- Calendário com marcações por balanço energético (verde/vermelho)
-- Gestão completa (CRUD) para: suplementos, fichas, desportos
-- Operação offline: todos os dados guardados localmente em AsyncStorage
+- [🎯 Visão Geral](#-visão-geral)
+- [✨ Funcionalidades Principais](#-funcionalidades-principais)
+- [🔥 Dashboard Inteligente](#-dashboard-inteligente)
+- [🏋️ Sistema de Treinos](#️-sistema-de-treinos)
+- [💊 Gestão de Suplementos](#-gestão-de-suplementos)
+- [👤 Perfil e Métricas](#-perfil-e-métricas)
+- [📊 Histórico e Analytics](#-histórico-e-analytics)
+- [⚙️ Configurações Avançadas](#️-configurações-avançadas)
+- [🔄 Sincronização Firebase](#-sincronização-firebase)
+- [🚀 Instalação e Configuração](#-instalação-e-configuração)
+- [📱 Build e Distribuição](#-build-e-distribuição)
+- [🛠️ Arquitetura Técnica](#️-arquitetura-técnica)
+- [🔧 Desenvolvimento](#-desenvolvimento)
+- [📄 Documentação Adicional](#-documentação-adicional)
 
 ---
 
-## Instalação e execução
+## 🎯 Visão Geral
 
-Pré-requisitos:
-- Node.js (v18+ recomendado)
-- npm ou yarn
-- Expo CLI (opcional, mas recomendado): `npm install -g expo-cli`
-# 📱 GymFlow — Documentação do Projeto
+O **GymFlow** é uma aplicação móvel completa desenvolvida em **Expo + React Native + TypeScript** para acompanhar treinos, nutrição, suplementação e métricas de fitness. Combina uma experiência offline robusta com sincronização opcional via Firebase, proporcionando uma solução integrada para entusiastas de fitness.
 
-GymFlow é uma aplicação móvel construída com Expo + React Native + TypeScript para gerir treinos, nutrição e suplementação. Esta documentação descreve a arquitetura, instalação, execução, principais funcionalidades, armazenamento de dados, testes e como contribuir.
+### 🎁 Principais Diferenciais
 
----
-
-## Índice
-
-- [Visão Geral](#vis%C3%A3o-geral)
-- [Funcionalidades Principais](#funcionalidades-principais)
-- [Pré-requisitos](#pr%C3%A9-requisitos)
-- [Instalação e Execução](#instala%C3%A7%C3%A3o-e-execução)
-- [Estrutura do Projeto](#estrutura-do-projeto)
-- [Armazenamento e Formatos de Dados](#armazenamento-e-formatos-de-dados)
-- [Fluxos Principais e Arquivos Relacionados](#fluxos-principais-e-arquivos-relacionados)
-- [Debugging e Resolução de Problemas Comuns](#debugging-e-resolu%C3%A7%C3%A3o-de-problemas-comuns)
-- [Testes e Qualidade](#testes-e-qualidade)
-- [Contribuindo](#contribuindo)
-- [Roadmap & Melhorias Futuras](#roadmap--melhorias-futuras)
-- [Licença](#licença)
+- **📱 Multi-plataforma**: iOS, Android e Web
+- **💾 Offline-first**: Funciona sem internet, sincroniza quando disponível
+- **🔄 Sincronização automática**: Firebase com atualizações em tempo real
+- **🎨 Interface moderna**: Design responsivo com animações fluidas
+- **🔔 Notificações inteligentes**: Toast system centralizado para feedback
+- **📊 Analytics avançados**: Métricas de progresso e conquistas
+- **⚡ Performance otimizada**: Hooks customizados e gestão eficiente de estado
 
 ---
 
-## Visão Geral
+## ✨ Funcionalidades Principais
 
-O GymFlow ajuda utilizadores a planear e registar treinos (fichas de musculação e outras modalidades), acompanhar ingestão alimentar, gerir suplementos e visualizar métricas de progresso (IMC, TDEE estimado, balanço energético). O app suporta operação offline com sincronização opcional via Firebase.
+### 🏠 **Dashboard Inteligente**
+- **Resumo diário** com calorias consumidas vs. gastas
+- **Próximo treino** com acesso direto
+- **Conquistas** e feedback motivacional
+- **Suplementos diários** com check interativo
+- **Métricas semanais** e progresso visual
+- **Compartilhamento** de progresso nas redes sociais
 
-## Funcionalidades Principais
+### 🏋️ **Sistema de Treinos Avançado**
+- **Fichas de treino** personalizáveis (A, B, C, D)
+- **Catálogo de 74+ exercícios** com vídeos demonstrativos
+- **Seletor inteligente** com filtros por músculo e equipamento
+- **Contabilização automática** de treinos realizados
+- **Cálculo de calorias** baseado em METs
+- **Histórico completo** de treinos com estatísticas
+- **Gestão de múltiplos esportes** (Academia, Vôlei, Futebol, Boxe, etc.)
 
-- Dashboard diário com resumo de calorias consumidas vs gastas
-- Registo de treinos por modalidade (ex.: Musculação, Natação, Futebol)
-- Fichas de treino (CRUD) com seleção de exercícios e contabilização automática
-- Cálculo de gasto calórico por atividade usando METs (`constants/metData.ts`)
-- Diário alimentar com pesquisa e agrupamento por refeição (`data/foodData.json`)
-- Gestão de suplementos com lembretes e histórico diário
-- Perfil do utilizador (IMC, idade, TDEE) com persistência local
-- Calendário com marcações por balanço energético
-- Operação offline via `AsyncStorage`, com opção de sincronização com Firebase (quando autenticado)
+### 💊 **Gestão de Suplementos**
+- **Lista personalizada** de suplementos
+- **Tipos de acompanhamento**: Check diário ou contador de doses
+- **Histórico detalhado** de consumo
+- **Lembretes inteligentes**
+- **Configurações flexíveis** (dose, unidade, visibilidade)
 
-## Pré-requisitos
+### 👤 **Perfil Completo**
+- **Informações pessoais**: Nome, idade, peso, altura, sexo
+- **Cálculos automáticos**: IMC, TMB, TDEE
+- **Objetivos personalizados**: Perda/ganho de peso, manutenção
+- **Configurações de unidades** (kg/lbs, cm/ft, km/miles)
+- **Preferências de interface** e notificações
 
-- Node.js (v18+ recomendado)
+### 📊 **Analytics e Histórico**
+- **Calendário visual** com balanço energético
+- **Estatísticas semanais/mensais**
+- **Gráficos de progresso**
+- **Histórico de alimentação** com busca inteligente
+- **Relatórios de atividades** por modalidade
+
+---
+
+## 🔥 Dashboard Inteligente
+
+O dashboard é o coração do aplicativo, oferecendo uma visão completa do progresso diário:
+
+### 📈 **Métricas em Tempo Real**
+```typescript
+// Cálculo automático de calorias
+const totalCaloriesToday = calculateDailyCalories(foodHistory, workoutHistory)
+const caloriesBalance = totalCaloriesToday.consumed - totalCaloriesToday.burned
+```
+
+### 🏆 **Sistema de Conquistas**
+- **Meta semanal** de treinos atingida
+- **Balanço calórico** equilibrado
+- **Consistência** de suplementação
+- **Feedback háptico** e toasts motivacionais
+
+### 🎯 **Próximo Treino Inteligente**
+```typescript
+// Rotação automática de fichas de treino
+const nextWorkout = getNextWorkoutId(workouts, lastCompletedWorkout)
+```
+
+---
+
+## 🏋️ Sistema de Treinos
+
+### 📚 **Catálogo de Exercícios**
+- **74+ exercícios** pré-cadastrados
+- **Vídeos demonstrativos** (GIF/WebP)
+- **Categorização** por grupo muscular
+- **Filtros avançados** por equipamento
+- **Instruções detalhadas**
+
+### 🎛️ **Seletor de Exercícios Enhanced**
+```typescript
+// Componente avançado com filtros múltiplos
+<ExerciseSelectorEnhanced
+  onExerciseSelect={handleExerciseAdd}
+  selectedExerciseIds={selectedIds}
+  muscleFilter={selectedMuscle}
+  equipmentFilter={selectedEquipment}
+/>
+```
+
+### ⚡ **Recursos Avançados**
+- **Criação rápida** de fichas
+- **Edição em tempo real**
+- **Reordenação** por drag-and-drop
+- **Duplicação** de exercícios
+- **Templates** pré-definidos
+
+---
+
+## 💊 Gestão de Suplementos
+
+### 🎯 **Tipos de Acompanhamento**
+
+#### ✅ **Daily Check** (Check Diário)
+```typescript
+// Para suplementos de dose única
+{
+  type: 'daily_check',
+  taken: boolean // Tomou hoje?
+}
+```
+
+#### 🔢 **Counter** (Contador)
+```typescript
+// Para múltiplas doses por dia
+{
+  type: 'counter',
+  count: number // Quantas doses hoje?
+}
+```
+
+### 📱 **Interface Interativa**
+- **Toggle switches** para daily_check
+- **Stepper controls** para counter
+- **Visualização** na home personalizável
+- **Histórico detalhado** por suplemento
+
+---
+
+## 👤 Perfil e Métricas
+
+### 🧮 **Cálculos Automatizados**
+
+#### IMC (Índice de Massa Corporal)
+```typescript
+const bmi = weight / Math.pow(height / 100, 2)
+```
+
+#### TMB (Taxa Metabólica Basal)
+```typescript
+// Fórmula de Mifflin-St Jeor
+const bmr = gender === 'male' 
+  ? 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age)
+  : 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age)
+```
+
+#### TDEE (Total Daily Energy Expenditure)
+```typescript
+const multipliers = {
+  sedentary: 1.2,
+  light: 1.375,
+  moderate: 1.55,
+  active: 1.725,
+  very_active: 1.9
+}
+const tdee = bmr * multipliers[activityLevel]
+```
+
+### 🎯 **Objetivos Personalizados**
+- **Objetivo principal**: Perda/ganho/manutenção de peso
+- **Metas semanais**: Treinos, atividades, tempo
+- **Calorias diárias**: Baseado em TDEE e objetivos
+- **Acompanhamento** de progresso visual
+
+---
+
+## 📊 Histórico e Analytics
+
+### 📅 **Calendário Visual**
+```typescript
+// Marcações por balanço energético
+const calendarMarkedDates = {
+  '2025-11-10': { 
+    marked: true, 
+    dotColor: caloriesBalance > 0 ? 'red' : 'green' 
+  }
+}
+```
+
+### 📈 **Estatísticas Avançadas**
+- **Treinos por modalidade**
+- **Calorias queimadas** por semana
+- **Consistência** de suplementação
+- **Progresso** em direção às metas
+- **Comparativos** mensais
+
+### 🎲 **Dados Estruturados**
+```typescript
+// Formato de histórico de treinos
+interface WorkoutHistoryEntry {
+  id: string
+  date: 'YYYY-MM-DD'
+  workoutId: string
+  workoutName: string
+  category: 'Musculação' | 'Cardio' | 'Esporte'
+  duration: number // minutos
+  calories: number
+  exercises?: Exercise[]
+}
+```
+
+---
+
+## ⚙️ Configurações Avançadas
+
+### 🌐 **Personalização Completa**
+```typescript
+interface UserConfig {
+  // Pessoais
+  name: string
+  age?: number
+  weight?: number
+  height?: number
+  gender?: 'male' | 'female' | 'other'
+  
+  // Objetivos
+  fitnessGoal?: 'weight_loss' | 'muscle_gain' | 'maintain'
+  targetWeight?: number
+  dailyCalorieGoal?: number
+  
+  // Preferências
+  theme?: 'light' | 'dark' | 'auto'
+  language?: 'pt' | 'en'
+  
+  // Notificações
+  notifications?: {
+    workoutReminders: boolean
+    supplementReminders: boolean
+    mealReminders: boolean
+  }
+  
+  // Unidades
+  units?: {
+    weight: 'kg' | 'lbs'
+    height: 'cm' | 'ft'
+    distance: 'km' | 'miles'
+  }
+}
+```
+
+### 🎨 **Temas e Interface**
+- **Modo escuro/claro** automático
+- **Cores personalizáveis**
+- **Animações fluidas**
+- **Feedback háptico**
+
+---
+
+## 🔄 Sincronização Firebase
+
+### 🔥 **Hooks Firebase Implementados**
+
+#### ✅ **Ativos e Funcionando**
+- `useWorkouts` → `workouts/{userUID}`
+- `useSupplements` → `supplements/{userUID}`
+- `useSports` → `sports/{userUID}`
+- `useUserConfig` → `userConfig/{userUID}`
+- `useWorkoutHistory` → `workoutHistory/{userUID}`
+- `useSupplementsHistory` → `supplementsHistory/{userUID}`
+- `useFoodHistory` → `foodHistory/{userUID}`
+
+#### 🔄 **Hook Central**
+```typescript
+import { useFirebaseData } from './hooks/useFirebaseData'
+
+const {
+  workouts,
+  supplements,
+  userConfig,
+  isAnythingSyncing,
+  isAuthenticated,
+  forceSync,
+  clearAllData
+} = useFirebaseData()
+```
+
+### ⚡ **Recursos de Sincronização**
+- **Offline-first**: Funciona sem internet
+- **Sync automático** quando conectado
+- **Resolução de conflitos**
+- **Cache local** com AsyncStorage
+- **Atualizações em tempo real**
+
+---
+
+## 🚀 Instalação e Configuração
+
+### 📋 **Pré-requisitos**
+- Node.js 18+ 
 - npm ou yarn
 - Expo CLI (opcional): `npm install -g expo-cli`
 
-## Instalação e Execução
-
-1. Instalar dependências
-
+### ⚡ **Instalação Rápida**
 ```bash
+# 1. Clone o repositório
+git clone https://github.com/your-username/gymflow.git
+cd gymflow
+
+# 2. Instale dependências
 npm install
-```
 
-2. Iniciar a aplicação (desenvolvimento)
-
-```bash
-npm run start
+# 3. Inicie o projeto
+npm start
 # ou
 expo start
 ```
 
-3. Executar no dispositivo / emulador
-
-- Android: `npm run android` (ou via Metro)
-- iOS: `npm run ios` (macOS necessário)
-- Web: `npm run web`
-
-Comandos úteis:
-
+### 🔧 **Comandos Úteis**
 ```bash
-npm run lint           # lint
-npm run tsc -- --noEmit  # checagem TypeScript
+# Desenvolvimento
+npm run android     # Android
+npm run ios         # iOS (macOS required)  
+npm run web         # Web browser
+
+# Qualidade
+npm run lint        # ESLint
+npm run tsc -- --noEmit  # TypeScript check
+
+# Limpeza
+npx expo install --fix  # Fix dependencies
+npm run reset-project   # Reset cache
 ```
+
+---
+
+## 📱 Build e Distribuição
+
+### 🤖 **Android (Produção)**
+```bash
+eas build -p android --profile production --clear-cache
+```
+**Resultado**: APK pronto para instalação direta
+
+### 🍎 **iOS - Simulador (Gratuito)**
+```bash
+eas build -p ios --profile preview --clear-cache
+```
+**Resultado**: Build para simulador iOS (macOS required)
+
+### 🏪 **iOS - App Store (Requer conta paga)**
+```bash
+eas build -p ios --profile production --clear-cache
+```
+**Requisitos**: 
+- Apple Developer Program ($99/ano)
+- Bundle ID: `com.brainiac.gymflow`
+- Export compliance configurado automaticamente
+
+### 🚀 **Teste Rápido com Expo Go**
+```bash
+npx expo start --tunnel
+```
+**Para**: Teste imediato em dispositivos reais via QR code
+
+### 🔐 **Configuração de Segurança iOS**
+```javascript
+// app.config.js
+ios: {
+  infoPlist: {
+    ITSAppUsesNonExemptEncryption: false
+  }
+}
+```
+**Motivo**: App usa apenas criptografia padrão (HTTPS/TLS)
+
+### 🌐 **Distribuição Universal**
+Para um link único iOS/Android:
+1. **Produção**: Firebase Dynamic Links ou Branch
+2. **Testes**: Landing page HTML com detecção de plataforma
+
+---
+
+## 🛠️ Arquitetura Técnica
+
+### 📁 **Estrutura do Projeto**
+```
+gymflow/
+├── app/                    # Telas (Expo Router)
+│   ├── (tabs)/            # Navegação principal
+│   ├── fichas/            # Sistema de treinos
+│   ├── _layout.tsx        # Layout root + Toast provider
+│   └── *.tsx              # Telas individuais
+├── components/            # Componentes reutilizáveis
+│   ├── ExerciseSelector*.tsx  # Seletores avançados
+│   └── ui/                # Componentes UI básicos
+├── hooks/                 # Hooks customizados
+│   ├── useFirebaseStorage.ts  # Base Firebase
+│   ├── useWorkouts.ts     # Gestão de treinos
+│   ├── useSupplements.ts  # Gestão de suplementos
+│   └── useFirebaseData.ts # Hook central
+├── utils/                 # Utilitários
+│   ├── toastUtils.ts      # Sistema de toasts
+│   └── workoutUtils.ts    # Utilitários de treino
+├── constants/             # Dados e constantes
+│   ├── exercisesData.ts   # Catálogo de exercícios
+│   └── metData.ts         # Dados de METs
+├── services/              # Serviços externos
+│   ├── firebaseSync.ts    # Sincronização
+│   └── authService.ts     # Autenticação
+└── config/
+    └── firebase.ts        # Configuração Firebase
+```
+
+### 🔔 **Sistema de Toasts Centralizado**
+```typescript
+// utils/toastUtils.ts
+import { ToastPresets } from '@/utils/toastUtils'
+
+ToastPresets.success('Ação concluída!', 'O treino foi registado.')
+ToastPresets.error('Falha ao salvar', 'Tenta novamente mais tarde.')
+ToastPresets.info('Item removido', 'O suplemento foi excluído.')
+```
+
+### 🗃️ **Gestão de Estado**
+- **AsyncStorage**: Persistência local
+- **Firebase**: Sincronização cloud
+- **React Hooks**: Estado da aplicação
+- **Context API**: Estados globais (Sports)
+
+### 📅 **Gestão de Datas**
+```typescript
+// Formato padrão: YYYY-MM-DD (local timezone)
+const getLocalDateString = () => {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+```
+
+---
+
+## 🔧 Desenvolvimento
+
+### 🎯 **Padrões de Código**
+- **TypeScript strict**: Tipagem completa
+- **ESLint + Prettier**: Código padronizado  
+- **Hooks personalizados**: Lógica reutilizável
+- **Componentes funcionais**: React moderno
+- **Async/await**: Promises simplificadas
+
+### 🧪 **Testes Recomendados**
+```bash
+# Testes manuais essenciais
+# 1. Criar/editar ficha → verificar persistência
+# 2. Contabilizar treino → verificar workoutHistory
+# 3. Registar atividade → validar cálculo de calorias  
+# 4. Sync Firebase → validar dados no Firestore
+# 5. Toasts → verificar visibilidade após navegação
+```
+
+### 🐛 **Debug Common Issues**
+- **Toasts não aparecem**: Verificar `<Toast />` em `_layout.tsx`
+- **Calorias = 0**: Confirmar `userProfile.weight` e `MET_DATA`
+- **Data errada**: Evitar `toISOString()`, usar data local
+- **Notificações**: Testar em build standalone, não Expo Go
+
+### 🔄 **Git Workflow**
+```bash
+git checkout -b feat/nova-funcionalidade
+git commit -m "feat: adicionar sistema de conquistas"
+git push origin feat/nova-funcionalidade
+# Abrir Pull Request
+```
+
+---
+
+## 📄 Documentação Adicional
+
+### 📚 **Arquivos de Referência**
+- `docs/FIREBASE_USAGE.md` - Guia completo Firebase
+- `STATUS-FIREBASE.md` - Status dos hooks implementados  
+- `EXERCISE_SELECTOR_README.md` - Seletor de exercícios
+- `eas.json` - Configuração de builds
+- `app.config.js` - Configuração do app
+
+### 🔍 **Principais Constantes**
+```typescript
+// Chaves AsyncStorage
+const WORKOUTS_STORAGE_KEY = 'user_workouts_storage'
+const SUPPLEMENTS_STORAGE_KEY = 'user_supplements_list'  
+const USER_CONFIG_STORAGE_KEY = 'userConfig'
+const WORKOUT_HISTORY_STORAGE_KEY = 'workoutHistory'
+
+// Dados iniciais
+const INITIAL_SPORTS_DATA = [
+  { id: 'academia', name: 'Academia', icon: 'barbell-outline' },
+  { id: 'volei_quadra', name: 'Vôlei de Quadra', icon: 'volleyball' },
+  // ... mais esportes
+]
+```
+
+### 🎨 **Tema e Cores**
+```typescript
+const theme = {
+  colors: {
+    primary: '#5a4fcf',
+    secondary: '#6c5ce7', 
+    success: '#4CAF50',
+    warning: '#FF9800',
+    info: '#45b7d1'
+  }
+}
+```
+
+---
+
+## 🎯 Roadmap & Próximas Funcionalidades
+
+### 🚧 **Em Desenvolvimento**
+- [ ] **Export/Import** de dados (JSON/CSV)
+- [ ] **Modo offline avançado** com queue de sincronização
+- [ ] **Analytics detalhados** com gráficos interativos
+- [ ] **Planos de treino** pré-definidos
+- [ ] **Integração com wearables** (Apple Health, Google Fit)
+
+### 💡 **Futuras Melhorias**
+- [ ] **IA para sugestões** de treinos
+- [ ] **Sistema de badges** e gamificação
+- [ ] **Comunidade** e compartilhamento
+- [ ] **Nutrição avançada** com macro tracking
+- [ ] **Backup automático** e restore
+
+### 🌐 **Expansão de Plataforma**
+- [ ] **Desktop app** (Electron)
+- [ ] **Apple Watch** companion
+- [ ] **Web dashboard** completo
+
+---
+
+## 📞 Suporte e Contribuições
+
+### 🤝 **Como Contribuir**
+1. Fork o repositório
+2. Crie sua feature branch (`git checkout -b feat/amazing-feature`)
+3. Commit suas mudanças (`git commit -m 'Add amazing feature'`)
+4. Push para a branch (`git push origin feat/amazing-feature`)
+5. Abra um Pull Request
+
+### 🐛 **Report de Bugs**
+- Use GitHub Issues
+- Inclua passos para reproduzir
+- Anexe screenshots se aplicável
+- Especifique versão do OS/device
+
+### 💬 **Comunidade**
+- GitHub Discussions para dúvidas
+- Pull Requests são bem-vindos
+- Code reviews colaborativos
+
+---
+
+## 📜 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para detalhes.
+
+---
+
+## 🙏 Agradecimentos
+
+Desenvolvido com ❤️ para a comunidade fitness. Obrigado a todos os contribuidores e testadores que tornaram este projeto possível.
+
+**GymFlow** - Transforme sua jornada fitness! 💪
+
+---
+
+*Última atualização: 11 de Novembro de 2025*
 
 ## Estrutura do Projeto
 
