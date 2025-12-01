@@ -267,21 +267,20 @@ export default function ProfileScreen() {
                         
                         <Text style={styles.emptyTitle}>Bem-vindo ao GymFlow!</Text>
                         <Text style={styles.emptySubtitle}>
-                            Para começar sua jornada fitness, vamos criar seu perfil personalizado
-                        </Text>
+                            Para começar sua jornada fitness, vamos criar seu perfil personalizado </Text>
                         
                         <View style={styles.benefitsList}>
                             <View style={styles.benefitItem}>
                                 <Ionicons name="fitness" size={24} color={themeColor} />
-                                <Text style={styles.benefitText}>Cálculo personalizado de calorias</Text>
+                                <Text style={styles.benefitText}>Cálculo personalizado de calorias </Text>
                             </View>
                             <View style={styles.benefitItem}>
                                 <Ionicons name="analytics" size={24} color={themeColor} />
-                                <Text style={styles.benefitText}>Acompanhamento do seu progresso</Text>
+                                <Text style={styles.benefitText}>Acompanhamento do seu progresso </Text>
                             </View>
                             <View style={styles.benefitItem}>
                                 <Ionicons name="flag" size={24} color={themeColor} />
-                                <Text style={styles.benefitText}>Metas personalizadas para você</Text>
+                                <Text style={styles.benefitText}>Metas personalizadas para você </Text>
                             </View>
                         </View>
 
@@ -290,7 +289,7 @@ export default function ProfileScreen() {
                             style={styles.createProfileButton}
                         >
                             <Ionicons name="add-circle" size={24} color="white" />
-                            <Text style={styles.createProfileText}>Criar Meu Perfil</Text>
+                            <Text style={styles.createProfileText}>Criar Meu Perfil </Text>
                         </Pressable>
                     </View>
                 </ScrollView>

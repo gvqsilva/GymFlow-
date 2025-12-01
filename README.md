@@ -1,6 +1,6 @@
 # 📱 GymFlow — Aplicação Completa de Fitness e Bem-Estar
 
-**Versão:** 1.0.0 | **Última Atualização:** 11 de Novembro de 2025
+**Versão:** 1.0.0 | **Última Atualização:** 30 de Novembro de 2025
 **Status:** ✅ Funcionalidade completa — pronto para produção (iOS/Android/Web)
 
 ---
@@ -59,6 +59,16 @@ O **GymFlow** é uma aplicação móvel completa desenvolvida em **Expo + React 
 - **Histórico completo** de treinos com estatísticas
 - **Gestão de múltiplos esportes** (Academia, Vôlei, Futebol, Boxe, etc.)
 
+### 🍎 **Sistema de Nutrição e Alimentação**
+- **Base de dados local** com centenas de alimentos
+- **Busca inteligente** com sugestões automáticas
+- **Registro por refeição** (Café, Almoço, Jantar, Lanche)
+- **Cálculo automático** de macronutrientes (Proteína, Carboidratos, Gordura)
+- **Múltiplas unidades** (gramas, ml, fatias, unidades, colheres de sopa)
+- **Histórico detalhado** com total diário de calorias
+- **Análise nutricional** por refeição e dia
+- **Sincronização** com Firebase para backup automático
+
 ### 💊 **Gestão de Suplementos**
 - **Lista personalizada** de suplementos
 - **Tipos de acompanhamento**: Check diário ou contador de doses
@@ -77,8 +87,10 @@ O **GymFlow** é uma aplicação móvel completa desenvolvida em **Expo + React 
 - **Calendário visual** com balanço energético
 - **Estatísticas semanais/mensais**
 - **Gráficos de progresso**
-- **Histórico de alimentação** com busca inteligente
+- **Histórico de alimentação** com busca inteligente e análise por refeição
+- **Registro nutricional completo** com tracking de macronutrientes
 - **Relatórios de atividades** por modalidade
+- **Balanço calórico diário** (consumidas vs. gastas)
 
 ---
 
@@ -133,6 +145,51 @@ const nextWorkout = getNextWorkoutId(workouts, lastCompletedWorkout)
 - **Reordenação** por drag-and-drop
 - **Duplicação** de exercícios
 - **Templates** pré-definidos
+
+---
+
+## 🍎 Sistema de Alimentação e Nutrição
+
+### 📚 **Base de Dados de Alimentos**
+- **Centenas de alimentos** catalogados localmente
+- **Informações nutricionais completas** (calorias, proteínas, carboidratos, gorduras)
+- **Medidas personalizadas** por alimento (gramas, unidades, fatias, etc.)
+- **Busca inteligente** com filtros e sugestões automáticas
+
+### 🍽️ **Registro de Refeições**
+```typescript
+// Estrutura de entrada alimentar
+interface FoodEntry {
+  id: string
+  date: 'YYYY-MM-DD'
+  mealType: 'Café' | 'Almoço' | 'Jantar' | 'Lanche'
+  description: string // Ex: "150g de Arroz Branco"
+  data: {
+    calories: number
+    protein: number
+    carbs: number
+    fat: number
+  }
+}
+```
+
+### 🔍 **Parser Inteligente de Alimentos**
+```typescript
+// Exemplos de entradas suportadas
+"150g de Arroz Branco"
+"2 fatias de Pão Integral"
+"1 colher de sopa de Azeite"
+"200ml de Leite Desnatado"
+"3 unidades de Banana"
+```
+
+### 📱 **Interface de Uso**
+- **Busca em tempo real** com sugestões
+- **Scroll em listas** de alimentos filtradas
+- **Seleção por refeição** (Café, Almoço, Jantar, Lanche)
+- **Cálculo automático** de macronutrientes
+- **Histórico detalhado** por dia e refeição
+- **Total diário** de calorias consumidas
 
 ---
 
@@ -296,7 +353,7 @@ interface UserConfig {
 - `useUserConfig` → `userConfig/{userUID}`
 - `useWorkoutHistory` → `workoutHistory/{userUID}`
 - `useSupplementsHistory` → `supplementsHistory/{userUID}`
-- `useFoodHistory` → `foodHistory/{userUID}`
+- `useFoodHistory` → `foodHistory/{userUID}` (sistema de alimentação completo)
 
 #### 🔄 **Hook Central**
 ```typescript
@@ -653,10 +710,12 @@ Arquivos relevantes: `services/firebaseSync.ts`, `hooks/useFirebaseStorage.ts`, 
 ## Fluxos Principais e Onde Procurar Código
 
 - Home / Dashboard: `app/(tabs)/index.tsx`
+- **Sistema de Alimentação**: `app/(tabs)/historico.tsx` (registro e histórico nutricional)
 - Registar atividade esportiva: `app/logEsporte.tsx`
 - Fichas de treino: `app/fichas/[id].tsx`, `app/musculacao.tsx`, `app/gerir-fichas.tsx`
 - Criar/editar ficha: `app/ficha-modal.tsx`, `app/editar-ficha/[id].tsx`
 - Perfil e cálculos: `app/perfil.tsx`, `app/perfil-modal.tsx`
+- Gestão de suplementos: `app/gerir-suplementos.tsx`, `app/suplemento-modal.tsx`
 - Seleção de exercícios avançada: `components/ExerciseSelectorEnhanced.tsx` e `components/ExerciseSelector*.tsx`
 
 ## Debugging e Resolução de Problemas Comuns
@@ -765,11 +824,17 @@ npm run start
    - Abrir `Configurar Home`, alterar metas e salvar.
    - Se autenticado, verifique console e Firestore (se disponível) para ver o documento `userConfig` salvo; caso contrário verifique `AsyncStorage`.
 
-3. Testar contabilização de treino/esporte:
+3. **Testar sistema de alimentação**:
+   - Ir para `Histórico` → digitar alimento (ex: "150g arroz")
+   - Verificar sugestões automáticas e scroll na lista
+   - Registrar refeição e verificar cálculo de macronutrientes
+   - Validar persistência no `foodHistory` e sincronização Firebase
+
+4. Testar contabilização de treino/esporte:
    - Contabilizar um treino em `Fichas` ou registar uma atividade em `Registar Atividade`.
    - Verificar toast aparece e, após ~2s, a tela volta.
 
-4. Verificar ordem de fichas:
+5. Verificar ordem de fichas:
    - Vá para `Fichas` e `Gerir Fichas` — observe a ordem estável (alfabética por nome).
 
 ---

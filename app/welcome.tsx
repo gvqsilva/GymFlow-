@@ -40,14 +40,14 @@ export default function WelcomeScreen() {
         <View style={styles.logoCircle}>
           <Ionicons name="fitness" size={50} color="#667eea" />
         </View>
-        <Text style={styles.logoText}>GymFlow</Text>
+        <Text style={styles.logoText}>GymFlow </Text>
       </View>
 
       {/* Frase de boas-vindas */}
       <View style={styles.welcomeTextContainer}>
         <Text style={styles.welcomeText}>
           Transforme seu treino em{'\n'}
-          <Text style={styles.welcomeTextBold}>resultados reais</Text>
+          <Text style={styles.welcomeTextBold}>resultados reais </Text>
         </Text>
       </View>
 
@@ -56,29 +56,26 @@ export default function WelcomeScreen() {
         <View style={styles.benefitCard}>
           <Ionicons name="trending-up-outline" size={24} color="#667eea" />
           <Text style={styles.benefitText}>
-            Acompanhe seu progresso com gráficos detalhados
-          </Text>
+            Acompanhe seu progresso com gráficos detalhados </Text>
         </View>
 
         <View style={styles.benefitCard}>
           <Ionicons name="people-outline" size={24} color="#667eea" />
           <Text style={styles.benefitText}>
-            Compartilhe conquistas com a comunidade
-          </Text>
+            Compartilhe conquistas com a comunidade </Text>
         </View>
 
         <View style={styles.benefitCard}>
           <Ionicons name="cloud-upload-outline" size={24} color="#667eea" />
           <Text style={styles.benefitText}>
-            Backup automático na nuvem com conta criada
-          </Text>
+            Backup automático na nuvem com conta criada </Text>
         </View>
       </View>
 
       {/* Botões principais */}
       <View style={styles.buttonsContainer}>
         <TouchableOpacity style={styles.primaryButton} onPress={goToLogin}>
-          <Text style={styles.primaryButtonText}>Entrar / Criar uma conta</Text>
+          <Text style={styles.primaryButtonText}>Entrar / Criar uma conta </Text>
         </TouchableOpacity>
       </View>
 
