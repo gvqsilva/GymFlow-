@@ -1,20 +1,18 @@
 // app/(tabs)/historico.tsx
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Stack } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
   Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  View,
-  Keyboard,
+  View
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Stack } from 'expo-router';
 import Toast from 'react-native-toast-message';
 
 import FoodDatabase from '../../data/foodData.json';
@@ -347,17 +345,17 @@ export default function HistoricoScreen() {
               onBlur={() => setTimeout(() => setIsInputFocused(false), 200)}
             />
             {isInputFocused && suggestions.length > 0 && (
-              <FlatList
-                data={suggestions}
-                keyExtractor={(item) => item.name}
-                style={styles.suggestionsList}
-                renderItem={({ item }) => (
-                  <Pressable style={styles.suggestionItem} onPress={() => onSuggestionPress(item.name)}>
+              <ScrollView style={styles.suggestionsList} nestedScrollEnabled={true}>
+                {suggestions.map((item) => (
+                  <Pressable 
+                    key={item.name}
+                    style={styles.suggestionItem} 
+                    onPress={() => onSuggestionPress(item.name)}
+                  >
                     <Text style={styles.suggestionText}>{item.name}</Text>
                   </Pressable>
-                )}
-                keyboardShouldPersistTaps="always"
-              />
+                ))}
+              </ScrollView>
             )}
           </View>
 
@@ -583,17 +581,17 @@ const styles = StyleSheet.create({
   macroTextBold: { fontWeight: 'bold', color: '#333' },
   macroValue: { fontSize: 16, fontWeight: 'bold', color: themeColor },
   suggestionsList: {
-    maxHeight: 150,
+    maxHeight: 200,
     backgroundColor: 'white',
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#ddd',
-    position: 'absolute',
-    top: 60,
-    left: 0,
-    right: 0,
-    zIndex: 10,
+    marginTop: 5,
     elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   suggestionItem: {
     padding: 15,

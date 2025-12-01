@@ -466,7 +466,7 @@ const WeeklySummaryGraph = ({ data, iconMap }: { data: { [key: string]: number }
 export default function HomeScreen() {
     const { workouts, isLoading: isLoadingWorkouts, refreshWorkouts } = useWorkouts();
     const { sports } = useSportsContext();
-    const { supplements, refreshSupplements } = useSupplements();
+    const { supplements } = useSupplements();
 
     // ✅ NOVOS HOOKS FIREBASE - Substituindo estados antigos
     const firebaseData = useFirebaseData();
@@ -629,14 +629,13 @@ export default function HomeScreen() {
     // ✅ NOVO: Carregar configurações do usuário
     useEffect(() => {
         if (isFocused) {
-            refreshSupplements();
             loadData();
             refreshWorkouts();
             
             // 🔥 INICIA SINCRONIZAÇÃO AUTOMÁTICA
             autoSyncService.startAutoSync();
         }
-    }, [isFocused, loadData, refreshWorkouts, refreshSupplements]);
+    }, [isFocused, loadData, refreshWorkouts]);
 
     useEffect(() => {
         if (currentUserConfig?.name) {
