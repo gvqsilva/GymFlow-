@@ -1,18 +1,64 @@
+<div align="center">
+
 # GymFlow
 
-GymFlow é um aplicativo mobile completo de fitness e bem-estar, desenvolvido em **React Native + Expo + TypeScript**, disponível para iOS, Android e Web.
+**Aplicativo mobile completo de fitness e bem-estar**
 
-## Por que foi criado
+[![React Native](https://img.shields.io/badge/React_Native-0.81-61DAFB?style=flat-square&logo=react)](https://reactnative.dev/)
+[![Expo](https://img.shields.io/badge/Expo-54-000020?style=flat-square&logo=expo)](https://expo.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![Firebase](https://img.shields.io/badge/Firebase-12-FFCA28?style=flat-square&logo=firebase)](https://firebase.google.com/)
 
-A ideia surgiu de uma necessidade prática: não existe um app simples que reúna treino, alimentação, suplementação e planejamento semanal em um lugar só. A maioria dos apps existentes é focada demais em apenas uma área, ou então é complexa demais para o uso diário. O GymFlow foi criado para ser direto ao ponto — você abre, registra o que treinou, o que comeu, toma o suplemento, e fecha. Sem burocracia.
+*Disponível para iOS · Android · Web*
 
-O app também foi desenvolvido pensando que nem sempre há internet disponível: os dados ficam salvos localmente primeiro (offline-first) e sincronizam com a nuvem quando possível.
+</div>
 
 ---
 
-## Funcionalidades
+## Índice
+
+- [Sobre o projeto](#-sobre-o-projeto)
+- [Por que foi criado](#-por-que-foi-criado)
+- [Funcionalidades](#-funcionalidades)
+  - [Dashboard](#-dashboard-home)
+  - [Treinos](#-treinos-musculação)
+  - [Esportes](#-esportes)
+  - [Alimentação](#-alimentação)
+  - [Suplementos](#-suplementos)
+  - [Planejamento Semanal](#-planejamento-semanal)
+  - [Perfil e Métricas](#-perfil-e-métricas)
+  - [Modo Treinador](#-modo-treinador)
+  - [Gestão de Dados](#-gestão-de-dados)
+- [Arquitetura](#-arquitetura)
+  - [Estrutura de pastas](#estrutura-de-pastas)
+  - [Hooks principais](#hooks-principais)
+  - [Coleções no Firestore](#coleções-no-firestore)
+- [Stack](#-stack)
+- [Como rodar](#-como-rodar)
+- [Plataformas suportadas](#-plataformas-suportadas)
+
+---
+
+## Sobre o projeto
+
+GymFlow é uma aplicação mobile desenvolvida em **React Native + Expo + TypeScript** para acompanhar treinos, alimentação, suplementação e métricas de fitness. Combina uma experiência **offline-first** robusta com sincronização opcional via Firebase.
+
+---
+
+## Por que foi criado
+
+A ideia surgiu de uma necessidade prática: não existe um app simples que reúna treino, alimentação, suplementação e planejamento semanal em um lugar só. A maioria dos apps existentes é focada demais em apenas uma área, ou então é complexa demais para o uso diário.
+
+O GymFlow foi criado para ser direto ao ponto — você abre, registra o que treinou, o que comeu, toma o suplemento, e fecha. Sem burocracia.
+
+O app também foi desenvolvido pensando que nem sempre há internet disponível: os dados ficam salvos localmente primeiro e sincronizam com a nuvem quando possível.
+
+---
+
+## ✨ Funcionalidades
 
 ### Dashboard (Home)
+
 - Visão geral do dia: calorias consumidas vs. gastas
 - Suplementos do dia com ação rápida (check ou contador)
 - Plano do dia: atividades planejadas por período (manhã, tarde, noite)
@@ -20,7 +66,8 @@ O app também foi desenvolvido pensando que nem sempre há internet disponível:
 - Status de sincronização em tempo real
 - Compartilhamento do treino do dia
 
-### Treinos (Musculação)
+###️ Treinos (Musculação)
+
 - Criação de fichas personalizadas (A, B, C, D, etc.)
 - Catálogo com mais de 70 exercícios catalogados
 - Seletor de exercícios com filtros por grupo muscular e equipamento
@@ -30,12 +77,14 @@ O app também foi desenvolvido pensando que nem sempre há internet disponível:
 - Gráficos de frequência mensal por tipo de treino
 - Reordenação de exercícios por arrastar
 
-### Esportes
+### ⚽ Esportes
+
 - Registro de sessões de esportes variados (vôlei, futebol, boxe, corrida, etc.)
 - Categorias totalmente personalizáveis com ícones e emojis
 - Cálculo de calorias por MET (equivalente metabólico da atividade)
 
 ### Alimentação
+
 - Base de dados local com centenas de alimentos
 - Registro por refeição: café da manhã, almoço, jantar e lanche
 - Múltiplas unidades de medida (gramas, ml, fatias, colheres, unidades)
@@ -43,33 +92,38 @@ O app também foi desenvolvido pensando que nem sempre há internet disponível:
 - Histórico detalhado com análise por refeição e por dia
 
 ### Suplementos
+
 - Lista personalizada de suplementos
-- Dois modos de rastreamento: check diário (tomou/não tomou) ou contador de doses
+- Dois modos de rastreamento: **check diário** (tomou/não tomou) ou **contador de doses**
 - Histórico de consumo por data
 - Configuração de dose, unidade e visibilidade na tela inicial
 
 ### Planejamento Semanal
+
 - Planner de 7 dias com 3 períodos por dia (manhã, tarde, noite)
 - Adicione atividades com nome, emoji e anotações em cada período
 
 ### Perfil e Métricas
+
 - Dados pessoais: nome, idade, peso, altura, sexo
-- Cálculo automático de IMC, TMB (Taxa Metabólica Basal) e TDEE (Gasto Calórico Total)
+- Cálculo automático de **IMC**, **TMB** (Taxa Metabólica Basal) e **TDEE** (Gasto Calórico Total)
 - Metas personalizadas: emagrecimento, ganho de massa ou manutenção
 - Suporte a diferentes unidades (kg/lbs, cm/ft, km/mi)
 - Histórico de medidas corporais
 
 ### Modo Treinador
+
 - Interface especial para personal trainers gerenciarem alunos
 
 ### Gestão de Dados
+
 - Exportação e importação de dados locais
 - Backup automático no Firebase
 - Sincronização em segundo plano a cada 5 minutos
 
 ---
 
-## Arquitetura
+##️ Arquitetura
 
 O app segue uma arquitetura **offline-first**: o AsyncStorage é a fonte primária de dados, e o Firebase Firestore funciona como backup em nuvem. As duas camadas ficam sincronizadas de forma automática e transparente para o usuário.
 
@@ -132,7 +186,7 @@ utils/            # Funções utilitárias (cálculo de calorias, toasts, etc.)
 
 ---
 
-## Stack
+##️ Stack
 
 | Camada | Tecnologia |
 |--------|-----------|
@@ -169,9 +223,9 @@ npm install
 npx expo start
 ```
 
-### Variáveis de ambiente / Firebase
+### Firebase
 
-O app usa um arquivo `config/firebase.ts` com as credenciais do Firebase. Substitua com as credenciais do seu projeto Firebase:
+O app usa o arquivo `config/firebase.ts` com as credenciais do projeto. Substitua com as credenciais do seu projeto Firebase:
 
 ```ts
 const firebaseConfig = {
@@ -205,6 +259,8 @@ eas build --platform ios
 
 ## Plataformas suportadas
 
-- Android
-- iOS
-- Web (via react-native-web)
+| Plataforma | Suporte |
+|------------|---------|
+| Android | ✅ |
+| iOS | ✅ |
+| Web | ✅ (via react-native-web) |
