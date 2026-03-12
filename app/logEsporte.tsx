@@ -14,6 +14,30 @@ const PROFILE_KEY = 'userProfile';
 
 const SWIMMING_MET_VALUE = 7.0;
 
+const normalizeSportName = (value?: string) =>
+    (value || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+
+const formatPaceFromDuration = (durationMinutes: number, distanceKm: number) => {
+    if (durationMinutes <= 0 || distanceKm <= 0) return '';
+
+    const totalSecondsPerKm = Math.round((durationMinutes * 60) / distanceKm);
+    const minutes = Math.floor(totalSecondsPerKm / 60);
+    const seconds = totalSecondsPerKm % 60;
+    return `${minutes}:${String(seconds).padStart(2, '0')} min/km`;
+};
+
+const formatSwimPaceFromDuration = (durationMinutes: number, distanceMeters: number) => {
+    if (durationMinutes <= 0 || distanceMeters <= 0) return '';
+
+    const totalSecondsPer100m = Math.round((durationMinutes * 60 * 100) / distanceMeters);
+    const minutes = Math.floor(totalSecondsPer100m / 60);
+    const seconds = totalSecondsPer100m % 60;
+    return `${minutes}:${String(seconds).padStart(2, '0')} /100m`;
+};
+
 const getLocalDateString = (date = new Date()) => {
     const year = date.getFullYear();
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -32,9 +56,20 @@ export default function LogSportScreen() {
     const [estimatedCalories, setEstimatedCalories] = useState(0);
     const [distance, setDistance] = useState('');
     const [yards, setYards] = useState('');
+    const [distanceKm, setDistanceKm] = useState('');
 
-    const isSwimming = esporte?.toLowerCase() === 'natação';
-    const isAmericanFootball = esporte?.toLowerCase() === 'futebol americano';
+    const normalizedSport = normalizeSportName(esporte);
+    const isSwimming = normalizedSport === 'natacao';
+    const isAmericanFootball = normalizedSport === 'futebol americano';
+    const isRunning = normalizedSport.includes('corrida');
+    const isCycling = normalizedSport.includes('ciclismo') || normalizedSport.includes('bike') || normalizedSport.includes('bicicleta');
+    const isRunningOrCycling = isRunning || isCycling;
+
+    const parsedDuration = parseInt(duration, 10) || 0;
+    const parsedDistanceKm = parseFloat(distanceKm.replace(',', '.')) || 0;
+    const parsedDistanceMeters = parseInt(distance, 10) || 0;
+    const autoPace = formatPaceFromDuration(parsedDuration, parsedDistanceKm);
+    const autoSwimPace = formatSwimPaceFromDuration(parsedDuration, parsedDistanceMeters);
 
     useFocusEffect(
         React.useCallback(() => {
@@ -60,13 +95,15 @@ export default function LogSportScreen() {
                 const durationInHours = durationNum / 60;
                 calories = SWIMMING_MET_VALUE * weightNum * durationInHours;
             } else {
-                if (intensity) {
-                    // ALTERADO: Lógica de Fallback
-                    // 1. Tenta encontrar os valores MET para o desporto específico.
-                    // 2. Se não encontrar, usa os valores MET padrão.
+                // Para corrida e ciclismo, intensidade é automática (Moderada)
+                const effectiveIntensity = isRunningOrCycling
+                    ? 'Moderada'
+                    : intensity;
+
+                if (effectiveIntensity) {
                     const sportMetValues = MET_DATA[esporte] || DEFAULT_MET_VALUES;
-                    const metValue = sportMetValues[intensity] || 0;
-                    
+                    const metValue = sportMetValues[effectiveIntensity] || 0;
+
                     if (metValue > 0) {
                         calories = (metValue * weightNum * 3.5) / 200 * durationNum;
                     }
@@ -76,15 +113,16 @@ export default function LogSportScreen() {
         
         setEstimatedCalories(Math.round(calories));
         
-    }, [duration, intensity, userWeight, esporte]);
+    }, [duration, intensity, userWeight, esporte, isRunningOrCycling, isSwimming]);
 
     const handleSaveActivity = async () => {
         const commonFieldsMissing = !duration;
-        const sportSpecificFieldsMissing = !isSwimming && !intensity;
+        const sportSpecificFieldsMissing = (!isSwimming && !isRunningOrCycling && !intensity) || (isRunningOrCycling && !distanceKm.trim());
 
         if (commonFieldsMissing || sportSpecificFieldsMissing) {
             let message = 'Por favor, preencha a Duração e a Intensidade.';
             if (isSwimming) message = 'Por favor, preencha a Duração.';
+            if (isRunningOrCycling) message = 'Por favor, preencha Duração e Distância (km).';
             Toast.show({ type: 'error', text1: 'Campos Incompletos', text2: message });
             return;
         }
@@ -99,11 +137,23 @@ export default function LogSportScreen() {
             if (!isSwimming) {
                 details.intensity = intensity;
             }
+            if (isRunningOrCycling) {
+                details.intensity = 'Moderada';
+            }
             if (isSwimming && distance) {
                 details.distance = parseInt(distance, 10);
+                if (autoSwimPace) {
+                    details.pace = autoSwimPace;
+                }
             }
             if (isAmericanFootball && yards) {
                 details.yards = parseInt(yards, 10) || 0;
+            }
+            if (isRunningOrCycling && parsedDistanceKm > 0) {
+                details.distanceKm = Number(parsedDistanceKm.toFixed(2));
+                if (autoPace) {
+                    details.pace = autoPace;
+                }
             }
 
             const newActivity = {
@@ -174,6 +224,12 @@ export default function LogSportScreen() {
                             onChangeText={setDistance}
                             placeholder="Ex: 1500 (métrica de performance)"
                         />
+                        {autoSwimPace ? (
+                            <View style={styles.pacePreviewCard}>
+                                <Text style={styles.pacePreviewLabel}>Ritmo Automático (Natação)</Text>
+                                <Text style={styles.pacePreviewValue}>{autoSwimPace}</Text>
+                            </View>
+                        ) : null}
                     </>
                 )}
 
@@ -190,7 +246,28 @@ export default function LogSportScreen() {
                     </>
                 )}
 
-                {!isSwimming && (
+                {isRunningOrCycling && (
+                    <>
+                        <Text style={styles.hintText}>Intensidade automática: Moderada</Text>
+                        <Text style={styles.label}>Distância Percorrida (km)</Text>
+                        <TextInput
+                            style={styles.input}
+                            keyboardType="decimal-pad"
+                            value={distanceKm}
+                            onChangeText={setDistanceKm}
+                            placeholder="Ex: 5.2"
+                        />
+
+                        {autoPace ? (
+                            <View style={styles.pacePreviewCard}>
+                                <Text style={styles.pacePreviewLabel}>Pace / Ritmo Automático</Text>
+                                <Text style={styles.pacePreviewValue}>{autoPace}</Text>
+                            </View>
+                        ) : null}
+                    </>
+                )}
+
+                {!isSwimming && !isRunningOrCycling && (
                     <>
                         <Text style={styles.label}>Intensidade</Text>
                         <View style={styles.intensityContainer}>
@@ -264,5 +341,32 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: themeColor,
         marginTop: 5,
+    },
+    hintText: {
+        marginTop: -4,
+        marginBottom: 16,
+        fontSize: 13,
+        color: '#666',
+    },
+    pacePreviewCard: {
+        backgroundColor: '#edeaff',
+        borderRadius: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        marginTop: -8,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#d9d2ff',
+    },
+    pacePreviewLabel: {
+        fontSize: 12,
+        color: '#5a4fcf',
+        fontWeight: '600',
+    },
+    pacePreviewValue: {
+        marginTop: 4,
+        fontSize: 20,
+        color: '#5a4fcf',
+        fontWeight: 'bold',
     },
 });

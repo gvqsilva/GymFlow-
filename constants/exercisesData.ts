@@ -17,7 +17,8 @@ export const exercisesData = {
       { "id": "ex_0108", "name": "Leg Press 45°", "muscle": "Quadríceps", "videoUrl": require("../assets/videos/ex_0108.gif") },
       { "id": "ex_0109", "name": "Afundo", "muscle": "Quadríceps", "videoUrl": require("../assets/videos/ex_0109.gif") },
       { "id": "ex_0110", "name": "Cadeira Extensora", "muscle": "Quadríceps", "videoUrl": require("../assets/videos/ex_0110.gif") },
-      { "id": "ex_0111", "name": "Cadeira Extensora Unilateral", "muscle": "Quadríceps", "videoUrl": require("../assets/videos/ex_0111.gif") }
+      { "id": "ex_0111", "name": "Cadeira Extensora Unilateral", "muscle": "Quadríceps", "videoUrl": require("../assets/videos/ex_0111.gif") },
+      { "id": "ex_111_1", "name": "Afundo no Smith", "muscle": "Quadríceps", "videoUrl": require("../assets/videos/ex_111_1.gif") }
     ],
     "Posterior": [
       { "id": "ex_0112", "name": "Stiff", "muscle": "Posterior de Coxa", "videoUrl": require("../assets/videos/ex_0112.gif") },
@@ -28,7 +29,8 @@ export const exercisesData = {
     "Glúteos": [
       { "id": "ex_0116", "name": "Cadeira abdutora", "muscle": "Glúteo", "videoUrl": require("../assets/videos/ex_0116.gif") },
       { "id": "ex_0117", "name": "Cadeira adutora", "muscle": "Glúteo", "videoUrl": require("../assets/videos/ex_0117.gif") },
-      { "id": "ex_0118", "name": "Elevação Pélvica", "muscle": "Glúteo", "videoUrl": require("../assets/videos/ex_0118.gif") }
+      { "id": "ex_0118", "name": "Elevação Pélvica", "muscle": "Glúteo", "videoUrl": require("../assets/videos/ex_0118.gif") },
+      { "id": "ex_0119", "name": "Glúteo na Polia", "muscle": "Glúteo", "videoUrl": require("../assets/videos/ex_0119.gif") }
     ],
     "Peitoral": [
       { "id": "ex_0201", "name": "Supino Reto com Barra", "muscle": "Peitoral", "videoUrl": require("../assets/videos/ex_0201.gif") },
@@ -44,7 +46,8 @@ export const exercisesData = {
       { "id": "ex_0211", "name": "Fly Inclinado no Cabo", "muscle": "Peitoral", "videoUrl": require("../assets/videos/ex_0211.gif") },
       { "id": "ex_0212", "name": "Supino Articulado Declinado", "muscle": "Peitoral", "videoUrl": require("../assets/videos/ex_0212.gif") },
       { "id": "ex_0213", "name": "Crucifixo Máquina", "muscle": "Peitoral", "videoUrl": require("../assets/videos/ex_0213.gif") },
-      { "id": "ex_0214", "name": "Supino Máquina", "muscle": "Peitoral", "videoUrl": require("../assets/videos/ex_0214.gif") }
+      { "id": "ex_0214", "name": "Supino Máquina", "muscle": "Peitoral", "videoUrl": require("../assets/videos/ex_0214.gif") },
+      { "id": "ex_0215", "name": "Supino Inclinado Máquina", "muscle": "Peitoral", "videoUrl": require("../assets/videos/ex_0215.gif") }
     ],
     "Costas": [
       { "id": "ex_0301", "name": "Puxada Frontal", "muscle": "Dorsal", "videoUrl": require("../assets/videos/ex_0301.gif") },
@@ -58,9 +61,11 @@ export const exercisesData = {
       { "id": "ex_0309", "name": "Remada na Máquina", "muscle": "Dorsal", "videoUrl": require("../assets/videos/ex_0309.gif") },
       { "id": "ex_0310", "name": "Levantamento Terra", "muscle": "Dorsal", "videoUrl": require("../assets/videos/ex_0310.gif") },
       { "id": "ex_0311", "name": "Remada Seal", "muscle": "Dorsal", "videoUrl": require("../assets/videos/ex_0311.gif") },
+      { "id": "ex_001", "name": "Remada Articulada", "muscle": "Dorsal", "videoUrl": require("../assets/videos/ex_001.webp") },
       { "id": "ex_0312", "name": "Encolhimento de Ombros", "muscle": "Trapézio", "videoUrl": require("../assets/videos/ex_0312.gif") },
       { "id": "ex_0313", "name": "Remada Alta", "muscle": "Trapézio", "videoUrl": require("../assets/videos/ex_0313.gif") },
       { "id": "ex_0314", "name": "Crucifixo Invertido Máquina", "muscle": "Trapézio", "videoUrl": require("../assets/videos/ex_0314.gif") },
+      { "id": "ex_0317", "name": "Crucifixo Invertido Halter", "muscle": "Trapézio", "videoUrl": require("../assets/videos/ex_0317.gif") },
       { "id": "ex_0315", "name": "Face Pull", "muscle": "Trapézio", "videoUrl": require("../assets/videos/ex_0315.gif") },
       { "id": "ex_0316", "name": "Extensão Lombar 45°", "muscle": "Lombar", "videoUrl": require("../assets/videos/ex_0316.gif") }
     ],

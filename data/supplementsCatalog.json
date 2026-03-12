@@ -1,0 +1,177 @@
+[
+  {
+    "name": "Creatina Monohidratada",
+    "defaultDose": 3,
+    "unit": "g",
+    "trackingType": "daily_check",
+    "category": "Performance"
+  },
+  {
+    "name": "Whey Protein",
+    "defaultDose": 30,
+    "unit": "g",
+    "trackingType": "counter",
+    "category": "Proteína"
+  },
+  {
+    "name": "Albumina",
+    "defaultDose": 30,
+    "unit": "g",
+    "trackingType": "counter",
+    "category": "Proteína"
+  },
+  {
+    "name": "Caseína",
+    "defaultDose": 30,
+    "unit": "g",
+    "trackingType": "counter",
+    "category": "Proteína"
+  },
+  {
+    "name": "BCAA",
+    "defaultDose": 5,
+    "unit": "g",
+    "trackingType": "counter",
+    "category": "Aminoácidos"
+  },
+  {
+    "name": "EAA",
+    "defaultDose": 10,
+    "unit": "g",
+    "trackingType": "counter",
+    "category": "Aminoácidos"
+  },
+  {
+    "name": "Glutamina",
+    "defaultDose": 5,
+    "unit": "g",
+    "trackingType": "daily_check",
+    "category": "Recuperação"
+  },
+  {
+    "name": "Beta-Alanina",
+    "defaultDose": 3.2,
+    "unit": "g",
+    "trackingType": "daily_check",
+    "category": "Performance"
+  },
+  {
+    "name": "Cafeína",
+    "defaultDose": 200,
+    "unit": "mg",
+    "trackingType": "counter",
+    "category": "Estimulante"
+  },
+  {
+    "name": "Pré-Treino",
+    "defaultDose": 1,
+    "unit": "scoop",
+    "trackingType": "counter",
+    "category": "Performance"
+  },
+  {
+    "name": "Multivitamínico",
+    "defaultDose": 1,
+    "unit": "cápsula",
+    "trackingType": "daily_check",
+    "category": "Vitaminas"
+  },
+  {
+    "name": "Vitamina D3",
+    "defaultDose": 2000,
+    "unit": "UI",
+    "trackingType": "daily_check",
+    "category": "Vitaminas"
+  },
+  {
+    "name": "Vitamina C",
+    "defaultDose": 500,
+    "unit": "mg",
+    "trackingType": "daily_check",
+    "category": "Vitaminas"
+  },
+  {
+    "name": "Complexo B",
+    "defaultDose": 1,
+    "unit": "cápsula",
+    "trackingType": "daily_check",
+    "category": "Vitaminas"
+  },
+  {
+    "name": "Ômega 3",
+    "defaultDose": 2,
+    "unit": "cápsula",
+    "trackingType": "daily_check",
+    "category": "Saúde"
+  },
+  {
+    "name": "Magnésio",
+    "defaultDose": 300,
+    "unit": "mg",
+    "trackingType": "daily_check",
+    "category": "Minerais"
+  },
+  {
+    "name": "Zinco",
+    "defaultDose": 15,
+    "unit": "mg",
+    "trackingType": "daily_check",
+    "category": "Minerais"
+  },
+  {
+    "name": "Melatonina",
+    "defaultDose": 3,
+    "unit": "mg",
+    "trackingType": "daily_check",
+    "category": "Sono"
+  },
+  {
+    "name": "Colágeno Hidrolisado",
+    "defaultDose": 10,
+    "unit": "g",
+    "trackingType": "daily_check",
+    "category": "Saúde"
+  },
+  {
+    "name": "HMB",
+    "defaultDose": 3,
+    "unit": "g",
+    "trackingType": "daily_check",
+    "category": "Recuperação"
+  },
+  {
+    "name": "L-Carnitina",
+    "defaultDose": 2,
+    "unit": "g",
+    "trackingType": "daily_check",
+    "category": "Performance"
+  },
+  {
+    "name": "Coenzima Q10",
+    "defaultDose": 100,
+    "unit": "mg",
+    "trackingType": "daily_check",
+    "category": "Saúde"
+  },
+  {
+    "name": "Probiótico",
+    "defaultDose": 1,
+    "unit": "cápsula",
+    "trackingType": "daily_check",
+    "category": "Saúde"
+  },
+  {
+    "name": "Eletrólitos",
+    "defaultDose": 1,
+    "unit": "dose",
+    "trackingType": "counter",
+    "category": "Hidratação"
+  },
+  {
+    "name": "Hipercalórico",
+    "defaultDose": 1,
+    "unit": "dose",
+    "trackingType": "counter",
+    "category": "Calorias"
+  }
+]

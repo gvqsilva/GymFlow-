@@ -1,27 +1,27 @@
-// app/perfil.tsx
+// app/(tabs)/perfil.tsx
 
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Stack, useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  Image,
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    Image,
+    Pressable,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import { LineChart } from "react-native-chart-kit";
-import { BodyMeasurementsCard } from "../components/BodyMeasurementsCard";
-import { useResponsive } from "../hooks/useResponsive";
-import { authService } from "../services/authService";
-import { firebaseSyncService } from "../services/firebaseSync";
-import { BMRInput, calculateTDEE } from "../utils/calorieCalculator";
+import { BodyMeasurementsCard } from "../../components/BodyMeasurementsCard";
+import { useResponsive } from "../../hooks/useResponsive";
+import { authService } from "../../services/authService";
+import { firebaseSyncService } from "../../services/firebaseSync";
+import { BMRInput, calculateTDEE } from "../../utils/calorieCalculator";
 
 const { width } = Dimensions.get("window");
 const themeColor = "#5a4fcf";
@@ -193,6 +193,35 @@ const calculateDaysToGoal = (
   const weightDiff = Math.abs(currentWeight - targetWeight);
   const weeks = weightDiff / weeklyRate;
   return Math.round(weeks * 7);
+};
+
+const getProfileTimestamp = (profile: any): number => {
+  if (!profile) return 0;
+
+  if (typeof profile.updatedAtMs === "number" && Number.isFinite(profile.updatedAtMs)) {
+    return profile.updatedAtMs;
+  }
+
+  const updatedAt = profile.updatedAt || profile.lastUpdated;
+  if (!updatedAt) return 0;
+
+  const parsedDate = new Date(updatedAt).getTime();
+  return Number.isFinite(parsedDate) ? parsedDate : 0;
+};
+
+const getMostRecentProfile = (localProfile: any, firebaseProfile: any): any => {
+  if (!localProfile && !firebaseProfile) return null;
+  if (!localProfile) return firebaseProfile;
+  if (!firebaseProfile) return localProfile;
+
+  const localTimestamp = getProfileTimestamp(localProfile);
+  const firebaseTimestamp = getProfileTimestamp(firebaseProfile);
+
+  if (localTimestamp >= firebaseTimestamp) {
+    return localProfile;
+  }
+
+  return firebaseProfile;
 };
 
 // ✅ Gera badges baseado em métricas
@@ -407,9 +436,12 @@ export default function ProfileScreen() {
           setIsOfflineMode(authService.isInOfflineMode());
           setUserEmail(current?.email || null);
 
-          let loadedProfile = null;
+          const profileJSON = await AsyncStorage.getItem("userProfile");
+          const localProfile = profileJSON ? JSON.parse(profileJSON) : null;
 
-          // Tentar carregar do Firebase primeiro se o usuário estiver autenticado
+          let firebaseProfile = null;
+
+          // Tentar carregar do Firebase se o usuário estiver autenticado
           if (current && authService.shouldSyncWithFirebase()) {
             try {
               // Verificar se a função existe antes de chamá-la
@@ -417,15 +449,9 @@ export default function ProfileScreen() {
                 firebaseSyncService &&
                 typeof firebaseSyncService.loadProfile === "function"
               ) {
-                const firebaseProfile = await firebaseSyncService.loadProfile();
+                firebaseProfile = await firebaseSyncService.loadProfile();
                 if (firebaseProfile) {
                   console.log("✅ Carregando perfil do Firebase na home");
-                  loadedProfile = firebaseProfile;
-                  // Sincronizar com AsyncStorage local
-                  await AsyncStorage.setItem(
-                    "userProfile",
-                    JSON.stringify(firebaseProfile),
-                  );
                 }
               } else {
                 console.warn(
@@ -440,11 +466,17 @@ export default function ProfileScreen() {
             }
           }
 
-          // Fallback para AsyncStorage se não conseguiu carregar do Firebase
-          if (!loadedProfile) {
-            const profileJSON = await AsyncStorage.getItem("userProfile");
-            loadedProfile = profileJSON ? JSON.parse(profileJSON) : null;
-            console.log("📱 Carregando perfil do AsyncStorage local na home");
+          const loadedProfile = getMostRecentProfile(localProfile, firebaseProfile);
+
+          if (loadedProfile) {
+            await AsyncStorage.setItem("userProfile", JSON.stringify(loadedProfile));
+            if (loadedProfile === localProfile && firebaseProfile) {
+              console.log("📱 Mantendo perfil local mais recente");
+            } else if (loadedProfile === firebaseProfile) {
+              console.log("☁️ Mantendo perfil do Firebase mais recente");
+            } else {
+              console.log("📱 Carregando perfil do AsyncStorage local na home");
+            }
           }
 
           setProfile(loadedProfile);
@@ -731,15 +763,6 @@ export default function ProfileScreen() {
   if (!profile) {
     return (
       <View style={styles.container}>
-        <Stack.Screen
-          options={{
-            title: "Meu Perfil",
-            headerStyle: { backgroundColor: themeColor },
-            headerTintColor: "#fff",
-            headerTitleStyle: { fontWeight: "bold" },
-          }}
-        />
-
         <ScrollView contentContainerStyle={styles.emptyStateContainer}>
           <View style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
@@ -884,33 +907,6 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen
-        options={{
-          title: "Meu Perfil",
-          headerStyle: { backgroundColor: themeColor },
-          headerTintColor: "#fff",
-          headerTitleStyle: { fontWeight: "bold" },
-          headerRight: () => (
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Pressable
-                onPress={checkFirebaseStatus}
-                style={{ marginRight: 15 }}
-              >
-                <Ionicons name="cloud-outline" size={24} color="white" />
-              </Pressable>
-              <Pressable onPress={() => router.push("/perfil-modal")}>
-                <Ionicons
-                  name="create"
-                  size={24}
-                  color="white"
-                  style={{ marginRight: 15 }}
-                />
-              </Pressable>
-            </View>
-          ),
-        }}
-      />
-
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.internalTabsContainer}>
           <Pressable
@@ -1645,24 +1641,6 @@ export default function ProfileScreen() {
 
             <Pressable
               style={styles.settingsLinkCard}
-              onPress={() => setActiveTab("progresso")}
-            >
-              <Ionicons
-                name="person-circle-outline"
-                size={28}
-                color={themeColor}
-              />
-              <View style={styles.settingsCardTextContainer}>
-                <Text style={styles.settingsCardTitle}>Meu Perfil</Text>
-                <Text style={styles.settingsCardSubtitle}>
-                  Consulte e edite os seus dados e metas
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={24} color="gray" />
-            </Pressable>
-
-            <Pressable
-              style={styles.settingsLinkCard}
               onPress={() => router.push("/gestao-dados")}
             >
               <Ionicons name="calendar-outline" size={28} color={themeColor} />
@@ -1676,6 +1654,20 @@ export default function ProfileScreen() {
             </Pressable>
 
             <Text style={styles.settingsSectionHeader}>Personalização</Text>
+
+            <Pressable
+              style={styles.settingsLinkCard}
+              onPress={() => router.push("/perfil-modal")}
+            >
+              <Ionicons name="person-outline" size={28} color={themeColor} />
+              <View style={styles.settingsCardTextContainer}>
+                <Text style={styles.settingsCardTitle}>Editar Perfil</Text>
+                <Text style={styles.settingsCardSubtitle}>
+                  Altere peso, meta, prazo e foto de perfil
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={24} color="gray" />
+            </Pressable>
 
             <Pressable
               style={styles.settingsLinkCard}
@@ -1787,7 +1779,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   internalTabTextActive: {
-    color: themeColor,
+    color: "#5a4fcf",
     fontWeight: "700",
   },
 
@@ -1855,7 +1847,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   activityPeriodTextActive: {
-    color: themeColor,
+    color: "#5a4fcf",
   },
   activityWeekTitle: {
     fontSize: 36,
@@ -2007,7 +1999,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   settingsActionButton: {
-    backgroundColor: themeColor,
+    backgroundColor: "#5a4fcf",
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
@@ -2098,14 +2090,14 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   createProfileButton: {
-    backgroundColor: themeColor,
+    backgroundColor: "#5a4fcf",
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 16,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    shadowColor: themeColor,
+    shadowColor: "#5a4fcf",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -2479,7 +2471,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f0f4ff",
     borderRadius: 10,
     borderLeftWidth: 4,
-    borderLeftColor: themeColor,
+    borderLeftColor: "#5a4fcf",
     gap: 10,
   },
   infoBox: {
@@ -2495,7 +2487,7 @@ const styles = StyleSheet.create({
   },
   infoBold: {
     fontWeight: "700",
-    color: themeColor,
+    color: "#5a4fcf",
   },
 
   // Body Composition
@@ -2577,7 +2569,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#eee",
   },
-  netBalanceValue: { fontSize: 32, fontWeight: "bold", color: themeColor },
+  netBalanceValue: { fontSize: 32, fontWeight: "bold", color: "#5a4fcf" },
   cardSubtext: {
     fontSize: 14,
     color: "gray",
